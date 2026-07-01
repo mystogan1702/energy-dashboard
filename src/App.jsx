@@ -19,6 +19,7 @@ import EventLogsPage from "./components/EventLogsPage";
 import SettingsPage from "./components/SettingsPage";
 import DeviceSetup from "./components/DeviceSetup";
 import SystemHealthPage from "./components/SystemHealthPage";
+import ChangePasswordPage from "./components/ChangePasswordPage";
 
 
 // Protected route wrapper
@@ -60,6 +61,7 @@ function AppContent() {
         <Route path="event-logs" element={<EventLogsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="system-health" element={<SystemHealthPage />} />
+        <Route path="change-password" element={<ChangePasswordPage />} />
       </Route>
     </Routes>
   );

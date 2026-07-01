@@ -4,9 +4,10 @@ import { useAuth } from "../lib/AuthContext";
 import AuthLayout from "./AuthLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import { faGoogle } from "@fortawesome/free-brands-svg-icons";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -26,6 +27,21 @@ export default function LoginPage() {
       setError(err.message);
     }
     setLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError("");
+    try {
+      const result = await loginWithGoogle();
+      const providers = result.user.providerData.map((p) => p.providerId);
+      if (!providers.includes("password")) {
+        navigate("/change-password");
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -96,7 +112,25 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition disabled:opacity-50"
         >
-          {loading ? "Signing in..." : "Sign in"}
+          {loading ? "Signing in..." : "Sign in with Email"}
+        </button>
+
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white dark:bg-gray-900 text-gray-500">or</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          className="w-full py-3 px-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition flex items-center justify-center gap-2"
+        >
+          <FontAwesomeIcon icon={faGoogle} className="text-red-500" />
+          Continue with Google
         </button>
       </form>
     </AuthLayout>

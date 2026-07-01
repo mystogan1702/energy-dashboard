@@ -34,9 +34,9 @@ export default function AuthLayout({ children, title, subtitle, footer }) {
           </div>
           {/* Text overlay */}
           <div className="absolute bottom-16 left-10 text-white">
-            <h2 className="text-3xl font-bold tracking-tight">Energy Monitor</h2>
-            <p className="mt-2 text-sm text-blue-100 max-w-xs">
-              Real‑time IoT power analytics at your fingertips.
+            <h2 className="text-8xl font-bold tracking-tight">PesoWatt</h2>
+            <p className="mt-2 text-xs text-blue-100 max-w-3xs">
+              Power Monitoring Dashboard using ESP32. Track your electricity usage in real-time and optimize your energy consumption.
             </p>
           </div>
         </div>
@@ -50,7 +50,7 @@ export default function AuthLayout({ children, title, subtitle, footer }) {
             <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-2xl shadow-lg">
               <FontAwesomeIcon icon={faBolt} className="text-2xl text-white" />
             </div>
-            <h1 className="mt-3 text-2xl font-bold text-gray-900 dark:text-white">Energy Monitor</h1>
+            <h1 className="mt-3 text-2xl font-bold text-gray-900 dark:text-white">PesoWatt</h1>
           </div>
 
           {/* Form container */}

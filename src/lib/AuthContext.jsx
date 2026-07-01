@@ -5,9 +5,15 @@ import {
   signOut,
   sendPasswordResetEmail,
   onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+  linkWithCredential,
+  deleteUser,                           // ← new
 } from "firebase/auth";
 import { auth } from "./firebase";
-import { logEvent } from "./logEvent"; 
 
 const AuthContext = createContext();
 
@@ -19,38 +25,58 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Listen for authentication state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);
     });
-    return unsubscribe; // cleanup on unmount
+    return unsubscribe;
   }, []);
 
-  // Register new user
+  // Email / password
   function register(email, password) {
     return createUserWithEmailAndPassword(auth, email, password);
   }
 
-  // Login existing user
   function login(email, password) {
-  return signInWithEmailAndPassword(auth, email, password)
-    .then((userCredential) => {
-      // Log the login event (use a dummy device ID or a global one)
-      logEvent("device_001", "userLogin", `User ${email} logged in`, "info", email);
-      return userCredential;
-    });
+    return signInWithEmailAndPassword(auth, email, password);
   }
 
-  // Logout
   function logout() {
     return signOut(auth);
   }
 
-  // Send password reset email
   function resetPassword(email) {
     return sendPasswordResetEmail(auth, email);
+  }
+
+  // Google sign‑in
+  function loginWithGoogle() {
+    const provider = new GoogleAuthProvider();
+    return signInWithPopup(auth, provider);
+  }
+
+  // Password management
+  function reauthenticateUser(password) {
+    const credential = EmailAuthProvider.credential(
+      currentUser.email,
+      password
+    );
+    return reauthenticateWithCredential(currentUser, credential);
+  }
+
+  function changePassword(newPassword) {
+    return updatePassword(currentUser, newPassword);
+  }
+
+  function setPasswordForGoogleUser(email, password) {
+    const credential = EmailAuthProvider.credential(email, password);
+    return linkWithCredential(currentUser, credential);
+  }
+
+  // Delete account
+  function deleteAccount() {
+    return deleteUser(currentUser);
   }
 
   const value = {
@@ -59,11 +85,15 @@ export function AuthProvider({ children }) {
     register,
     logout,
     resetPassword,
+    loginWithGoogle,
+    reauthenticateUser,
+    changePassword,
+    setPasswordForGoogleUser,
+    deleteAccount,              // ← new
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {/* Only render children after the initial auth state is known */}
       {!loading && children}
     </AuthContext.Provider>
   );
