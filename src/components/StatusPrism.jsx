@@ -9,7 +9,7 @@ const statuses = {
 export default function StatusPrism({ status = "normal" }) {
   const s = statuses[status] || statuses.normal;
   return (
-    <div className="w-16 h-6 sm:w-20 sm:h-7 perspective-[200px]">
+    <div className="w-12 h-6 sm:w-20 sm:h-7 perspective-[200px]">
       <div
         className="relative w-full h-full transition-transform duration-700 ease-in-out"
         style={{
