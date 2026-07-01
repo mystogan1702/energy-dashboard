@@ -5,7 +5,7 @@ import { useUserDevices } from "../hooks/useUserDevices";
 import { useDeviceConfig } from "../hooks/useDeviceConfig";
 import { useDailyCost } from "../hooks/useDailyCost";
 import { useDailySummary } from "../hooks/useDailySummary";
-import { useDeviceStatus } from "../hooks/useDeviceStatus";   // <--- new
+import { useDeviceStatus } from "../hooks/useDeviceStatus";
 import DeviceSelector from "./DeviceSelector";
 import StatCard from "./StatCard";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -22,7 +22,7 @@ import {
   faTachometerAlt,
 } from "@fortawesome/free-solid-svg-icons";
 
-/* -------- Polished Loading Spinner -------- */
+/* -------- Spinner / Empty / Error (unchanged) -------- */
 function Spinner() {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -32,7 +32,6 @@ function Spinner() {
   );
 }
 
-/* -------- Beautiful Empty State (No devices) -------- */
 function NoDevices() {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -55,7 +54,6 @@ function NoDevices() {
   );
 }
 
-/* -------- No Data Yet (device selected, but no readings) -------- */
 function NoData() {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -70,7 +68,6 @@ function NoData() {
   );
 }
 
-/* -------- Error State -------- */
 function DashboardError({ message }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -101,16 +98,14 @@ export default function Dashboard() {
   const { data, loading: readingLoading, error } = useLatestReading(selectedDevice || null);
   const { config } = useDeviceConfig(selectedDevice);
   const { cost, consumption, loading: costLoading } = useDailyCost(selectedDevice);
-  const { status } = useDeviceStatus(selectedDevice);   // <--- new
+  const { status } = useDeviceStatus(selectedDevice);
 
-  // Automatically generate yesterday's daily summary if not already present
   useDailySummary(selectedDevice);
 
   useEffect(() => {
     if (devices.length > 0 && !selectedDevice) setSelectedDevice(devices[0].id);
   }, [devices, selectedDevice]);
 
-  // ---- State handling ----
   if (devicesLoading) return <Spinner />;
   if (!devices.length) return <NoDevices />;
   if (readingLoading) return <Spinner />;
@@ -127,81 +122,74 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Live Dashboard</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Live Dashboard</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Real‑time energy monitoring</p>
         </div>
         <DeviceSelector selectedDevice={selectedDevice} onSelect={setSelectedDevice} />
       </div>
 
-      {/* Quick summary cards – 5 items on desktop */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="glass-card !p-4 flex items-center gap-3">
-          <FontAwesomeIcon icon={faBolt} className="text-2xl text-yellow-500" />
-          <div>
-            <div className="stat-label">Power</div>
-            <div className="text-lg font-bold text-gray-900 dark:text-white">
-              {data.activePower.toFixed(0)} W
-            </div>
+      {/* Quick summary cards – always 5 columns, ultra‑compact */}
+      <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+        {/* Power */}
+        <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
+          <FontAwesomeIcon icon={faBolt} className="text-base sm:text-lg text-yellow-500 mb-0.5" />
+          <div className="stat-label text-[9px] leading-tight">Power</div>
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
+            {data.activePower.toFixed(0)} W
           </div>
         </div>
 
-        <div className="glass-card !p-4 flex items-center gap-3">
-          <FontAwesomeIcon icon={faBatteryFull} className="text-2xl text-green-500" />
-          <div>
-            <div className="stat-label">Energy Today</div>
+        {/* Energy Today */}
+        <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
+          <FontAwesomeIcon icon={faBatteryFull} className="text-base sm:text-lg text-green-500 mb-0.5" />
+          <div className="stat-label text-[9px] leading-tight">Energy</div>
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
             {costLoading ? (
-              <div className="animate-pulse h-5 w-16 bg-gray-300 dark:bg-gray-600 rounded" />
+              <div className="animate-pulse h-3 w-10 bg-gray-300 dark:bg-gray-600 rounded mx-auto" />
             ) : (
-              <div className="text-lg font-bold text-gray-900 dark:text-white">
-                {consumption != null ? consumption.toFixed(2) : '0.00'} kWh
-              </div>
+              `${consumption != null ? consumption.toFixed(2) : '0.00'} kWh`
             )}
           </div>
         </div>
 
-        <div className="glass-card !p-4 flex items-center gap-3">
-          <FontAwesomeIcon icon={faMoneyBillWave} className="text-2xl text-green-600" />
-          <div>
-            <div className="stat-label">Today's Cost</div>
+        {/* Today's Cost */}
+        <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
+          <FontAwesomeIcon icon={faMoneyBillWave} className="text-base sm:text-lg text-green-600 mb-0.5" />
+          <div className="stat-label text-[9px] leading-tight">Cost</div>
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
             {costLoading ? (
-              <div className="animate-pulse h-5 w-16 bg-gray-300 dark:bg-gray-600 rounded" />
+              <div className="animate-pulse h-3 w-10 bg-gray-300 dark:bg-gray-600 rounded mx-auto" />
             ) : (
-              <div className="text-lg font-bold text-gray-900 dark:text-white">
-                ₱{cost != null ? cost.toFixed(2) : '0.00'}
-              </div>
+              `₱${cost != null ? cost.toFixed(2) : '0.00'}`
             )}
           </div>
         </div>
 
-        {/* WiFi Name (SSID) – replaced Frequency */}
-        <div className="glass-card !p-4 flex items-center gap-3">
-          <FontAwesomeIcon icon={faWifi} className="text-2xl text-blue-500" />
-          <div>
-            <div className="stat-label">WiFi Name</div>
-            <div className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[100px]">
-              {status?.ssid || "—"}
-            </div>
+        {/* WiFi Name */}
+        <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
+          <FontAwesomeIcon icon={faWifi} className="text-base sm:text-lg text-blue-500 mb-0.5" />
+          <div className="stat-label text-[9px] leading-tight">WiFi</div>
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate max-w-full">
+            {status?.ssid || "—"}
           </div>
         </div>
 
-        {/* WiFi Speed – replaced Power Factor */}
-        <div className="glass-card !p-4 flex items-center gap-3">
-          <FontAwesomeIcon icon={faTachometerAlt} className="text-2xl text-purple-500" />
-          <div>
-            <div className="stat-label">WiFi Speed</div>
-            <div className="text-lg font-bold text-gray-900 dark:text-white">
-              {status?.networkSpeed || "—"} <span className="text-sm font-normal">Mbps</span>
-            </div>
+        {/* WiFi Speed */}
+        <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
+          <FontAwesomeIcon icon={faTachometerAlt} className="text-base sm:text-lg text-purple-500 mb-0.5" />
+          <div className="stat-label text-[9px] leading-tight">Speed</div>
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
+            {status?.networkSpeed || "—"} <span className="text-[9px] font-normal">Mbps</span>
           </div>
         </div>
       </div>
 
-      {/* Gauges – unchanged */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Gauges – 2 columns on mobile, 3 on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <StatCard title="Voltage" value={data.voltage} unit="V" type="voltage" thresholds={thresholds.voltage} lastUpdated={data.timestamp} />
         <StatCard title="Current" value={data.current} unit="A" type="current" thresholds={thresholds.current} lastUpdated={data.timestamp} />
         <StatCard title="Active Power" value={data.activePower} unit="W" type="activePower" thresholds={thresholds.activePower} lastUpdated={data.timestamp} />
