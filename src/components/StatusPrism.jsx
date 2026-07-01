@@ -9,7 +9,7 @@ const statuses = {
 export default function StatusPrism({ status = "normal" }) {
   const s = statuses[status] || statuses.normal;
   return (
-    <div className="w-20 h-7 perspective-[200px]">
+    <div className="w-16 h-6 sm:w-20 sm:h-7 perspective-[200px]">
       <div
         className="relative w-full h-full transition-transform duration-700 ease-in-out"
         style={{
@@ -23,10 +23,10 @@ export default function StatusPrism({ status = "normal" }) {
             className={`absolute inset-0 flex items-center justify-center rounded-full ${st.bgClass}`}
             style={{
               backfaceVisibility: "hidden",
-              transform: `rotateY(${i * 120}deg) translateZ(8px)`,
+              transform: `rotateY(${i * 120}deg) translateZ(6px)`,
             }}
           >
-            <span className="text-[8px] sm:text-[6px] font-bold text-white">
+            <span className="text-[8px] sm:text-[10px] font-bold text-white">
               {st.label}
             </span>
           </div>
