@@ -26,7 +26,7 @@ export default function StatusPrism({ status = "normal" }) {
               transform: `rotateY(${i * 120}deg) translateZ(8px)`,
             }}
           >
-            <span className="text-[8px] sm:text-[10px] font-bold text-white">
+            <span className="text-[8px] sm:text-[6px] font-bold text-white">
               {st.label}
             </span>
           </div>
