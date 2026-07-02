@@ -27,7 +27,7 @@ const statuses = {
 export default function StatusPrism({ status = "normal" }) {
   const s = statuses[status] || statuses.normal;
   return (
-    <div className="w-8 h-4 sm:w-20 sm:h-7 perspective-[200px]">
+    <div className="w-9 h-3 sm:w-20 sm:h-7 perspective-[100px]">
       <div
         className="relative w-full h-full transition-transform duration-700 ease-in-out"
         style={{
@@ -44,7 +44,7 @@ export default function StatusPrism({ status = "normal" }) {
               transform: `rotateY(${i * 120}deg) translateZ(6px)`,
             }}
           >
-            <span className="text-[5px] sm:text-[10px] font-bold drop-shadow-sm">
+            <span className="text-[7px] sm:text-[10px] font-bold drop-shadow-sm">
               {st.label}
             </span>
           </div>
