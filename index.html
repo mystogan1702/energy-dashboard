@@ -1,46 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PesoWatt - IoT Energy Monitor</title>
-
-    <!-- OneSignal – using their hosted service worker (no local file needed) -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.addEventListener("load", () => {
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        OneSignalDeferred.push(async function(OneSignal) {
-          await OneSignal.init({
-            appId: "45fad956-4485-4484-aacb-582da8a98b48",
-            // Use OneSignal's own service worker – bypasses SPA routing issues
-            serviceWorkerPath: "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js",
-            serviceWorkerParam: { scope: "/" },
-            allowLocalhostAsSecureOrigin: true,
-            promptOptions: {
-              slidedown: {
-                prompts: [
-                  {
-                    type: "push",
-                    autoPrompt: true,
-                    text: {
-                      actionMessage: "We'd like to send you energy alerts. Please allow notifications.",
-                      acceptButton: "Allow",
-                      cancelButton: "No Thanks",
-                    },
-                    delay: { pageViews: 1, timeDelay: 1 },
-                  },
-                ],
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.addEventListener("load", () => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "45fad956-4485-4484-aacb-582da8a98b48",
+        // Use the hosted service worker – no local file needed
+        serviceWorkerPath: "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js",
+        serviceWorkerParam: { scope: "/" },
+        allowLocalhostAsSecureOrigin: true,
+        promptOptions: {
+          slidedown: {
+            prompts: [
+              {
+                type: "push",
+                autoPrompt: true,
+                text: {
+                  actionMessage: "We'd like to send you energy alerts. Please allow notifications.",
+                  acceptButton: "Allow",
+                  cancelButton: "No Thanks",
+                },
+                delay: { pageViews: 1, timeDelay: 1 },
               },
-            },
-          });
-        });
+            ],
+          },
+        },
       });
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
+    });
+  });
+</script>
