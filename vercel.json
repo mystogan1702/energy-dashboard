@@ -1,18 +1,6 @@
 {
-  "routes": [
-    {
-      "src": "/OneSignalSDKWorker.js",
-      "dest": "/OneSignalSDKWorker.js"
-    },
-    {
-      "src": "/pwa-192x192.png",
-      "dest": "/pwa-192x192.png"
-    },
-    {
-      "src": "/pwa-512x512.png",
-      "dest": "/pwa-512x512.png"
-    },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/test.txt", "destination": "/test.txt" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
