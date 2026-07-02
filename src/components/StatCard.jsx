@@ -102,7 +102,7 @@ function SemiCircleGauge({ value, min, max, unit, type }) {
       </svg>
 
       {/* Reading value – inside the gauge, aligned at bottom centre */}
-      <div className="absolute bottom-[10px] left-1/2 -translate-x-1/2 text-center">
+      <div className="absolute bottom-[6px] left-1/2 -translate-x-1/2 text-center">
         <div className="text-lg font-bold text-gray-900 dark:text-white leading-none">
           {value.toFixed(2)}
         </div>
@@ -127,7 +127,7 @@ export default function StatCard({ title, value: rawValue, unit, type, lastUpdat
   return (
     <div className="glass-card flex flex-col items-center !p-2 relative">
       {/* Top‑left icon */}
-      <div className="absolute top-3 left-3 text-3xl leading-none text-gray-500 dark:text-gray-400">
+      <div className="absolute top-3 left-3 text-2xl leading-none text-gray-500 dark:text-gray-400">
         <FontAwesomeIcon icon={icons[type] || faChartBar} />
       </div>
       {/* Top‑right glass status prism */}

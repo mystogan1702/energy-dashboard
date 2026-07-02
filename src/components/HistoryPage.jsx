@@ -225,7 +225,7 @@ export default function HistoryPage() {
 
       // Wait 1500ms for the chart to fully re‑render after param change
       await new Promise((resolve) => {
-        timer = setTimeout(resolve, 1500);
+        timer = setTimeout(resolve, 1600);
       });
 
       try {
@@ -400,13 +400,13 @@ export default function HistoryPage() {
           <button
             onClick={toggleAll}
             disabled={isGeneratingSeparatePdf}
-            className={`px-1.5 py-0.5 text-[9px] sm:text-[10px] rounded-full font-medium transition flex items-center gap-0.5 ${
+            className={`px-1.5 py-0.5 text-[6px] sm:text-[10px] rounded-full font-medium transition flex items-center gap-0.5 ${
               selectedParams.length === allParameters.length
                 ? "bg-blue-600 text-white shadow-md"
                 : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
             }`}
           >
-            <FontAwesomeIcon icon={selectedParams.length === allParameters.length ? faCheckSquare : faSquare} className="text-[10px]" />
+            <FontAwesomeIcon icon={selectedParams.length === allParameters.length ? faCheckSquare : faSquare} className="text-[7px]" />
             All
           </button>
           {allParameters.map((param) => {
@@ -416,13 +416,13 @@ export default function HistoryPage() {
                 key={param.key}
                 onClick={() => toggleParam(param.key)}
                 disabled={isGeneratingSeparatePdf}
-                className={`px-1.5 py-0.5 text-[9px] sm:text-[10px] rounded-full font-medium transition flex items-center gap-0.5 ${
+                className={`px-1.5 py-0.5 text-[6px] sm:text-[10px] rounded-full font-medium transition flex items-center gap-0.5 ${
                   active
                     ? "bg-blue-600 text-white shadow-md"
                     : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
-                <FontAwesomeIcon icon={active ? faCheckSquare : faSquare} className="text-[10px]" />
+                <FontAwesomeIcon icon={active ? faCheckSquare : faSquare} className="text-[7px]" />
                 {param.label}
               </button>
             );
@@ -464,30 +464,31 @@ export default function HistoryPage() {
       </div>
 
       {/* Chart area */}
-      <div className="glass-card" ref={chartRef}>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {displayParams.length === 0
-              ? "Select a parameter"
-              : displayParams.length === 1
-              ? allParameters.find((p) => p.key === displayParams[0])?.label
-              : "Multiple Parameters"}
-          </h3>
-          {isGeneratingSeparatePdf && (
-            <span className="text-sm text-blue-600 animate-pulse">
-              Capturing {displayParams[0] && allParameters.find(p => p.key === displayParams[0])?.label}…
-            </span>
-          )}
-        </div>
+      <div className="glass-card p-3 sm:p-6" ref={chartRef}>
+      <div className="flex justify-between items-center mb-3 sm:mb-4">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+          {displayParams.length === 0
+            ? "Select a parameter"
+            : displayParams.length === 1
+            ? allParameters.find((p) => p.key === displayParams[0])?.label
+            : "Multiple Parameters"}
+        </h3>
+        {isGeneratingSeparatePdf && (
+          <span className="text-xs sm:text-sm text-blue-600 animate-pulse">
+            Capturing {displayParams[0] && allParameters.find(p => p.key === displayParams[0])?.label}…
+          </span>
+        )}
+      </div>
 
-        {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={400}>
+      {chartData.length > 0 ? (
+        <div className="h-56 sm:h-80 lg:h-96">
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-              <XAxis dataKey="time" tick={{ fontSize: 12 }} />
-              <YAxis domain={["auto", "auto"]} />
+              <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+              <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10 }} />
               <Tooltip />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: "12px" }} />
               {displayParams.map((key) => {
                 const param = allParameters.find((p) => p.key === key);
                 return (
@@ -504,10 +505,11 @@ export default function HistoryPage() {
               })}
             </LineChart>
           </ResponsiveContainer>
-        ) : (
-          <div className="text-center py-20 text-gray-400">No data for the selected range.</div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="text-center py-20 text-gray-400">No data for the selected range.</div>
+      )}
+    </div>
     </div>
   );
 }

@@ -75,7 +75,7 @@ export default function DateRangePicker({ onApply }) {
           <button
             key={p.label}
             onClick={() => handlePreset(p)}
-            className="px-2 py-1 text-[10px] sm:text-xs rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/60 transition"
+            className="px-2 py-1 text-[8px] sm:text-xs rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/60 transition"
           >
             {p.label}
           </button>
@@ -91,7 +91,7 @@ export default function DateRangePicker({ onApply }) {
           <button
             type="button"
             onClick={() => openModal("start")}
-            className="w-full text-left px-2 py-1.5 text-[10px] sm:text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-full text-left px-2 py-1.5 text-[8px] sm:text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           >
             {formatDate(startDate)}
           </button>
@@ -103,7 +103,7 @@ export default function DateRangePicker({ onApply }) {
           <button
             type="button"
             onClick={() => openModal("end")}
-            className="w-full text-left px-2 py-1.5 text-[10px] sm:text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-full text-left px-2 py-1.5 text-[8px] sm:text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           >
             {formatDate(endDate)}
           </button>
