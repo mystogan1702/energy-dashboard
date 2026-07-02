@@ -140,7 +140,7 @@ export default function StatCard({ title, value: rawValue, unit, type, lastUpdat
   return (
     <div className="glass-card flex flex-col items-center !p-2 relative">
       {/* Top‑left icon */}
-      <div className="absolute top-3 left-3 text-3xl leading-none text-gray-500 dark:text-gray-400">
+      <div className="absolute top-3 left-3 text-1xl leading-none text-gray-500 dark:text-gray-400">
         <FontAwesomeIcon icon={icons[type] || faChartBar} />
       </div>
       {/* Top‑right glass status prism */}
