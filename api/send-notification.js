@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ✅ Use the new API endpoint
+    // ✅ New API endpoint for os_v2_app_* keys
     const response = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
       headers: {
