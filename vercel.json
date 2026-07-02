@@ -1,8 +1,20 @@
 {
   "rewrites": [
     {
-      "source": "/(OneSignalSDKWorker\\.js|firebase-messaging-sw\\.js|sw\\.js|workbox-.*\\.js|manifest\\.webmanifest|pwa-.*\\.png|favicon\\.ico|apple-touch-icon\\.png)",
-      "destination": "/$1"
+      "source": "/OneSignalSDKWorker.js",
+      "destination": "/OneSignalSDKWorker.js"
+    },
+    {
+      "source": "/pwa-192x192.png",
+      "destination": "/pwa-192x192.png"
+    },
+    {
+      "source": "/pwa-512x512.png",
+      "destination": "/pwa-512x512.png"
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "destination": "/manifest.webmanifest"
     },
     {
       "source": "/(.*)",
