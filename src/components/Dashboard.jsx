@@ -9,7 +9,22 @@ import { useDeviceStatus } from "../hooks/useDeviceStatus";
 import DeviceSelector from "./DeviceSelector";
 import StatCard from "./StatCard";
 import EmptyDashboard from "./EmptyDashboard";
-import CreateDashboardWizard from "./CreateDashboardWizard";   // <-- new
+import CreateDashboardWizard from "./CreateDashboardWizard";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBolt,
@@ -22,9 +37,159 @@ import {
   faPlug,
   faArrowRight,
   faTachometerAlt,
+  faTimes,
+  faPlus,
 } from "@fortawesome/free-solid-svg-icons";
 
-/* -------- Spinner / Error (unchanged) -------- */
+/* -------- All available monitoring parameters -------- */
+const ALL_CARD_TYPES = [
+  {
+    key: "voltage",
+    label: "Voltage",
+    unit: "V",
+    icon: faBolt,
+    thresholds: (cfg) => ({ min: cfg?.voltageMin || 200, max: cfg?.voltageMax || 250 }),
+  },
+  {
+    key: "current",
+    label: "Current",
+    unit: "A",
+    icon: faPlug,
+    thresholds: (cfg) => ({ min: 0, max: cfg?.currentMax || 10 }),
+  },
+  {
+    key: "activePower",
+    label: "Active Power",
+    unit: "W",
+    icon: faBolt,
+    thresholds: (cfg) => ({ min: 0, max: cfg?.powerMax || 2000 }),
+  },
+  {
+    key: "energy",
+    label: "Energy",
+    unit: "kWh",
+    icon: faBatteryFull,
+    thresholds: (cfg) => ({ min: 0, max: 100 }),
+  },
+  {
+    key: "frequency",
+    label: "Frequency",
+    unit: "Hz",
+    icon: faWifi,
+    thresholds: (cfg) => ({
+      min: cfg?.frequencyMin || 49.5,
+      max: cfg?.frequencyMax || 50.5,
+    }),
+  },
+  {
+    key: "powerFactor",
+    label: "Power Factor",
+    unit: "",
+    icon: faChartBar,
+    thresholds: (cfg) => ({ min: cfg?.powerFactorMin || 0.8, max: 1.0 }),
+  },
+  {
+    key: "wifiSpeed",
+    label: "WiFi Speed",
+    unit: "Mbps",
+    icon: faTachometerAlt,
+    thresholds: () => ({ min: 0, max: 1000 }),
+  },
+  {
+    key: "wifiName",
+    label: "WiFi Name",
+    unit: "",
+    icon: faWifi,
+    thresholds: () => ({ min: 0, max: 100 }),
+  },
+];
+
+/* -------- Sortable Card – whole card draggable -------- */
+function SortableCard({ id, children, onRemove }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : "auto",
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="relative group cursor-grab active:cursor-grabbing touch-none"
+    >
+      {/* Remove button – stopPropagation so it doesn't start a drag */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(id);
+        }}
+        className="absolute top-2 right-2 z-20 p-1 rounded bg-white/70 dark:bg-gray-800/70 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Remove card"
+      >
+        <FontAwesomeIcon icon={faTimes} />
+      </button>
+      {children}
+    </div>
+  );
+}
+
+/* -------- Add Card Modal -------- */
+function AddCardModal({ open, onClose, activeTypes, onAdd }) {
+  if (!open) return null;
+  const available = ALL_CARD_TYPES.filter((t) => !activeTypes.includes(t.key));
+
+  return (
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-md w-full p-6 z-10">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
+          Add Monitoring Card
+        </h3>
+        <div className="space-y-2">
+          {ALL_CARD_TYPES.map((t) => {
+            const disabled = activeTypes.includes(t.key);
+            return (
+              <button
+                key={t.key}
+                disabled={disabled}
+                onClick={() => {
+                  onAdd(t.key);
+                  onClose();
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
+                  disabled
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+                    : "hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                <FontAwesomeIcon icon={t.icon} className="text-gray-400" />
+                <span>{t.label}</span>
+                {disabled && (
+                  <span className="ml-auto text-xs text-gray-400">Already added</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-4 w-full py-2 text-sm bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* -------- Spinner / Error -------- */
 function Spinner() {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -68,8 +233,53 @@ export default function Dashboard() {
 
   useDailySummary(selectedDevice);
 
-  // State for the wizard modal
   const [wizardOpen, setWizardOpen] = useState(false);
+
+  const [activeCards, setActiveCards] = useState(() => {
+    const saved = localStorage.getItem("pesowatt_active_cards");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return ["voltage", "current", "activePower", "energy", "frequency", "powerFactor"];
+      }
+    }
+    return ["voltage", "current", "activePower", "energy", "frequency", "powerFactor"];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("pesowatt_active_cards", JSON.stringify(activeCards));
+  }, [activeCards]);
+
+  const [addModalOpen, setAddModalOpen] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+  );
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      setActiveCards((items) => {
+        const oldIndex = items.indexOf(active.id);
+        const newIndex = items.indexOf(over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const handleRemove = (id) => {
+    if (activeCards.length <= 1) return;
+    setActiveCards((prev) => prev.filter((c) => c !== id));
+  };
+
+  const handleAdd = (key) => {
+    if (activeCards.length >= 6) return;
+    if (!activeCards.includes(key)) {
+      setActiveCards((prev) => [...prev, key]);
+    }
+  };
 
   if (devicesLoading) return <Spinner />;
 
@@ -78,15 +288,11 @@ export default function Dashboard() {
     return (
       <>
         <EmptyDashboard onOpenWizard={() => setWizardOpen(true)} />
-        <CreateDashboardWizard
-          open={wizardOpen}
-          onClose={() => setWizardOpen(false)}
-        />
+        <CreateDashboardWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
       </>
     );
   }
 
-  // (The rest of the component remains identical)
   if (readingLoading) return <Spinner />;
   if (error) return <DashboardError message={error} />;
 
@@ -100,13 +306,35 @@ export default function Dashboard() {
     timestamp: null,
   };
 
-  const thresholds = {
-    voltage: { min: config?.voltageMin || 200, max: config?.voltageMax || 250 },
-    current: { min: 0, max: config?.currentMax || 10 },
-    activePower: { min: 0, max: config?.powerMax || 2000 },
-    energy: { min: 0, max: 100 },
-    frequency: { min: config?.frequencyMin || 49.5, max: config?.frequencyMax || 50.5 },
-    powerFactor: { min: config?.powerFactorMin || 0.8, max: 1.0 },
+  const cardValues = {
+    voltage: {
+      value: safeData.voltage,
+      unit: "V",
+      thresholds: { min: config?.voltageMin || 200, max: config?.voltageMax || 250 },
+    },
+    current: {
+      value: safeData.current,
+      unit: "A",
+      thresholds: { min: 0, max: config?.currentMax || 10 },
+    },
+    activePower: {
+      value: safeData.activePower,
+      unit: "W",
+      thresholds: { min: 0, max: config?.powerMax || 2000 },
+    },
+    energy: { value: safeData.energy, unit: "kWh", thresholds: { min: 0, max: 100 } },
+    frequency: {
+      value: safeData.frequency,
+      unit: "Hz",
+      thresholds: { min: config?.frequencyMin || 49.5, max: config?.frequencyMax || 50.5 },
+    },
+    powerFactor: {
+      value: safeData.powerFactor,
+      unit: "",
+      thresholds: { min: config?.powerFactorMin || 0.8, max: 1.0 },
+    },
+    wifiSpeed: { value: status?.networkSpeed || 0, unit: "Mbps", thresholds: { min: 0, max: 1000 } },
+    wifiName: { value: status?.ssid || "—", unit: "", thresholds: { min: 0, max: 100 } },
   };
 
   return (
@@ -120,9 +348,8 @@ export default function Dashboard() {
         <DeviceSelector selectedDevice={selectedDevice} onSelect={setSelectedDevice} />
       </div>
 
-      {/* Quick summary cards – 5 columns on all screens */}
+      {/* Quick summary cards */}
       <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-        {/* Power */}
         <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
           <FontAwesomeIcon icon={faBolt} className="text-base sm:text-lg text-yellow-500 mb-0.5" />
           <div className="stat-label text-[9px] leading-tight">Power</div>
@@ -130,8 +357,6 @@ export default function Dashboard() {
             {safeData.activePower.toFixed(0)} W
           </div>
         </div>
-
-        {/* Energy Today */}
         <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
           <FontAwesomeIcon icon={faBatteryFull} className="text-base sm:text-lg text-green-500 mb-0.5" />
           <div className="stat-label text-[9px] leading-tight">Energy</div>
@@ -143,8 +368,6 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-
-        {/* Today's Cost */}
         <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
           <FontAwesomeIcon icon={faMoneyBillWave} className="text-base sm:text-lg text-green-600 mb-0.5" />
           <div className="stat-label text-[9px] leading-tight">Cost</div>
@@ -156,8 +379,6 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-
-        {/* WiFi Name */}
         <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
           <FontAwesomeIcon icon={faWifi} className="text-base sm:text-lg text-blue-500 mb-0.5" />
           <div className="stat-label text-[9px] leading-tight">WiFi</div>
@@ -165,8 +386,6 @@ export default function Dashboard() {
             {status?.ssid || "—"}
           </div>
         </div>
-
-        {/* WiFi Speed */}
         <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
           <FontAwesomeIcon icon={faTachometerAlt} className="text-base sm:text-lg text-purple-500 mb-0.5" />
           <div className="stat-label text-[9px] leading-tight">Speed</div>
@@ -176,15 +395,52 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Gauges – 2 columns on mobile, 3 on desktop */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        <StatCard title="Voltage" value={safeData.voltage} unit="V" type="voltage" thresholds={thresholds.voltage} lastUpdated={safeData.timestamp} />
-        <StatCard title="Current" value={safeData.current} unit="A" type="current" thresholds={thresholds.current} lastUpdated={safeData.timestamp} />
-        <StatCard title="Active Power" value={safeData.activePower} unit="W" type="activePower" thresholds={thresholds.activePower} lastUpdated={safeData.timestamp} />
-        <StatCard title="Energy" value={safeData.energy} unit="kWh" type="energy" thresholds={thresholds.energy} lastUpdated={safeData.timestamp} />
-        <StatCard title="Frequency" value={safeData.frequency} unit="Hz" type="frequency" thresholds={thresholds.frequency} lastUpdated={safeData.timestamp} />
-        <StatCard title="Power Factor" value={safeData.powerFactor} unit="" type="powerFactor" thresholds={thresholds.powerFactor} lastUpdated={safeData.timestamp} />
-      </div>
+      {/* Flexible monitoring cards – whole card draggable */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={activeCards} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {activeCards.map((cardKey) => {
+              const cardInfo = ALL_CARD_TYPES.find((t) => t.key === cardKey);
+              if (!cardInfo) return null;
+              const valObj = cardValues[cardKey] || {
+                value: 0,
+                unit: "",
+                thresholds: { min: 0, max: 100 },
+              };
+              return (
+                <SortableCard key={cardKey} id={cardKey} onRemove={handleRemove}>
+                  <StatCard
+                    title={cardInfo.label}
+                    value={valObj.value}
+                    unit={valObj.unit}
+                    type={cardKey}
+                    thresholds={valObj.thresholds}
+                    lastUpdated={safeData.timestamp}
+                  />
+                </SortableCard>
+              );
+            })}
+            {activeCards.length < 6 && (
+              <button
+                onClick={() => setAddModalOpen(true)}
+                className="glass-card flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl hover:border-blue-500 dark:hover:border-blue-400 transition-colors group"
+              >
+                <FontAwesomeIcon icon={faPlus} className="text-3xl text-gray-400 group-hover:text-blue-500 mb-2" />
+                <span className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-500">
+                  Add Card
+                </span>
+              </button>
+            )}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      <AddCardModal
+        open={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        activeTypes={activeCards}
+        onAdd={handleAdd}
+      />
     </div>
   );
 }

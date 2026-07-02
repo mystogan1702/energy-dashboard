@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PesoWatt</string>
+    <string name="title_activity_main">PesoWatt</string>
+    <string name="package_name">com.johnadrien.pesowatt</string>
+    <string name="custom_url_scheme">com.johnadrien.pesowatt</string>
+</resources>
