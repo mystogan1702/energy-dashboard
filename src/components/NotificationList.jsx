@@ -160,20 +160,20 @@ export default function NotificationList({ notifications, deviceId }) {
     }
   };
 
-  // ---------- Send push for new unread notifications ----------
- // useEffect(() => {
-  //  const newUnread = notifications.filter(
- //     (n) => n.status === "unread" && !pushedIdsRef.current.has(n.id)
-  //  );
- //   newUnread.forEach((n) => {
-  //    sendPushNotification(
- //       n.type || "PesoWatt Alert",
- //       n.message || "An alert was triggered.",
- //       "/notifications"
- //     );
-//      pushedIdsRef.current.add(n.id);
-//    });
-//  }, [notifications]);
+   ---------- Send push for new unread notifications ----------
+  useEffect(() => {
+    const newUnread = notifications.filter(
+      (n) => n.status === "unread" && !pushedIdsRef.current.has(n.id)
+    );
+    newUnread.forEach((n) => {
+      sendPushNotification(
+        n.type || "PesoWatt Alert",
+        n.message || "An alert was triggered.",
+        "/notifications"
+      );
+      pushedIdsRef.current.add(n.id);
+    });
+  }, [notifications]);
 
   // Scroll to absolute top when page/filters change
   useEffect(() => {
