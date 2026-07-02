@@ -6,17 +6,11 @@ export async function sendPushNotification(title, message, url) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, message, url }),
     });
-
     if (!response.ok) {
       const error = await response.json();
-      console.error('Push send failed:', JSON.stringify(error));
-    } else {
-      console.log('Push sent successfully');
+      console.error('Push send failed:', error);
     }
   } catch (err) {
     console.error('Push send network error:', err);
   }
 }
-
-// TEMPORARY – remove after testing
-window.sendPushNotification = sendPushNotification;
