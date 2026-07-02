@@ -15,3 +15,4 @@ export async function sendPushNotification(title, message, url) {
     console.error('Push send network error:', err);
   }
 }
+window.sendPushNotification = sendPushNotification;
