@@ -10,6 +10,7 @@ export default async function handler(req, res) {
   // Read the REST API key from Vercel environment variables (safe!)
   const REST_KEY = process.env.ONESIGNAL_API_KEY;
   const APP_ID = process.env.ONESIGNAL_APP_ID;
+  console.log('REST_KEY exists:', !!process.env.ONESIGNAL_REST_API_KEY);
 
   if (!REST_KEY || !APP_ID) {
     return res.status(500).json({ error: 'Missing OneSignal credentials' });
