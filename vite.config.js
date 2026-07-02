@@ -47,24 +47,4 @@ export default defineConfig({
       },
     }),
   ],
-  build: {
-    // Split large vendor libraries into separate chunks
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          firebase: ["firebase/app", "firebase/firestore", "firebase/auth", "firebase/storage"],
-          recharts: ["recharts"],
-          jspdf: ["jspdf"],
-          html2canvas: ["html2canvas"],
-          xlsx: ["xlsx"],
-          fontawesome: [
-            "@fortawesome/fontawesome-svg-core",
-            "@fortawesome/free-solid-svg-icons",
-            "@fortawesome/free-brands-svg-icons",
-            "@fortawesome/react-fontawesome",
-          ],
-        },
-      },
-    },
-  },
 });
