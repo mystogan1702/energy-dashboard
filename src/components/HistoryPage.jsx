@@ -153,7 +153,7 @@ export default function HistoryPage() {
     const blob = new Blob([csvRows.join("\n")], {
       type: "text/csv;charset=utf-8",
     });
-    saveAs(blob, `energy_history.csv`);
+    saveAs(blob, `pesowatt_history.csv`);
   };
 
   const exportExcel = () => {
@@ -169,7 +169,7 @@ export default function HistoryPage() {
     const blob = new Blob([excelBuffer], {
       type: "application/octet-stream",
     });
-    saveAs(blob, `energy_history.xlsx`);
+    saveAs(blob, `pesowatt_history.xlsx`);
   };
 
   // Combined PDF export (all selected params overlaid)
@@ -338,7 +338,7 @@ export default function HistoryPage() {
       pdf.addImage(imgData, "PNG", x, y, w, h);
     });
 
-    pdf.save("energy_history_separate.pdf");
+    pdf.save("pesowatt_history_separate.pdf");
     setIsGeneratingSeparatePdf(false);
     setSeparatePdfImages([]);
   };
@@ -485,7 +485,7 @@ export default function HistoryPage() {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-              <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+              <XAxis dataKey="time" tick={{ fontSize: 6 }} />
               <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10 }} />
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: "12px" }} />
