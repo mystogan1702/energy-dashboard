@@ -17,25 +17,14 @@ export default defineConfig({
         display: "standalone",
         start_url: "/",
         icons: [
-          {
-            src: "pwa-192x192.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-          {
-            src: "pwa-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
-          },
-          {
-            src: "pwa-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "any maskable",
-          },
+          { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },
+          { src: "pwa-512x512.png", sizes: "512x512", type: "image/png" },
+          { src: "pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
         ],
       },
       workbox: {
+        // Increase the limit so the large bundle can be precached
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MiB
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         runtimeCaching: [
           {
@@ -58,4 +47,24 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    // Split large vendor libraries into separate chunks
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          firebase: ["firebase/app", "firebase/firestore", "firebase/auth", "firebase/storage"],
+          recharts: ["recharts"],
+          jspdf: ["jspdf"],
+          html2canvas: ["html2canvas"],
+          xlsx: ["xlsx"],
+          fontawesome: [
+            "@fortawesome/fontawesome-svg-core",
+            "@fortawesome/free-solid-svg-icons",
+            "@fortawesome/free-brands-svg-icons",
+            "@fortawesome/react-fontawesome",
+          ],
+        },
+      },
+    },
+  },
 });
