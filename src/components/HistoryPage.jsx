@@ -485,7 +485,7 @@ export default function HistoryPage() {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-              <XAxis dataKey="time" tick={{ fontSize: 6 }} />
+              <XAxis dataKey="time" tick={{ fontSize: 2 }} />
               <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10 }} />
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: "12px" }} />
