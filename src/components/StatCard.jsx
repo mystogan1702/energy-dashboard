@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useAnimatedValue } from "../hooks/useAnimatedValue";
 import StatusPrism from "./StatusPrism";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -13,7 +13,7 @@ import {
   faWifi,
 } from "@fortawesome/free-solid-svg-icons";
 
-// Icon mapping – extended to include new types
+// All possible icons
 const icons = {
   voltage: faBolt,
   current: faPlug,
@@ -25,18 +25,34 @@ const icons = {
   wifiName: faWifi,
 };
 
+// Simple counter to guarantee unique SVG ids across all gauge instances
+let uniqueCounter = 0;
+
 function SemiCircleGauge({ value, min, max, unit, type }) {
   const percentage = Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
 
+  // Glass‑inspired semi‑transparent colours
   let colorStart, colorEnd;
-  if (percentage > 90) { colorStart = "rgba(248, 113, 113, 0.75)"; colorEnd = "rgba(239, 68, 68, 0.75)"; }
-  else if (percentage > 75) { colorStart = "rgba(251, 146, 60, 0.75)"; colorEnd = "rgba(249, 115, 22, 0.75)"; }
-  else { colorStart = "rgba(74, 222, 128, 0.75)"; colorEnd = "rgba(34, 197, 94, 0.75)"; }
+  if (percentage > 90) {
+    colorStart = "rgba(248, 113, 113, 0.75)";
+    colorEnd = "rgba(239, 68, 68, 0.75)";
+  } else if (percentage > 75) {
+    colorStart = "rgba(251, 146, 60, 0.75)";
+    colorEnd = "rgba(249, 115, 22, 0.75)";
+  } else {
+    colorStart = "rgba(74, 222, 128, 0.75)";
+    colorEnd = "rgba(34, 197, 94, 0.75)";
+  }
 
-  // Unique IDs per card – critical fix for multiple gauges on screen
-  const gradId = `gaugeGrad-${type}`;
-  const wiperClipId = `wiperClip-${type}`;
-  const topHalfId = `topHalf-${type}`;
+  // Unique ID for this specific gauge instance – prevents any colour bleeding
+  const uid = useMemo(() => {
+    uniqueCounter += 1;
+    return `${type}-${uniqueCounter}`;
+  }, [type]);
+
+  const gradId = `gaugeGrad-${uid}`;
+  const topHalfId = `topHalf-${uid}`;
+  const wiperClipId = `wiperClip-${uid}`;
 
   const wiperX = 12;
   const wiperWidth = 106;
@@ -49,6 +65,11 @@ function SemiCircleGauge({ value, min, max, unit, type }) {
             <stop offset="0%" stopColor={colorStart} />
             <stop offset="100%" stopColor={colorEnd} />
           </linearGradient>
+
+          {/* Top semicircle clip – hides bottom half */}
+          <clipPath id={topHalfId}>
+            <rect x="0" y="0" width="130" height="65" />
+          </clipPath>
 
           {/* Wiper clip – reveals the arc from left to right */}
           <clipPath id={wiperClipId}>
@@ -64,11 +85,6 @@ function SemiCircleGauge({ value, min, max, unit, type }) {
               }}
             />
           </clipPath>
-
-          {/* Top semicircle clip (hides bottom half) */}
-          <clipPath id={topHalfId}>
-            <rect x="0" y="0" width="130" height="65" />
-          </clipPath>
         </defs>
 
         {/* Background track */}
@@ -82,20 +98,21 @@ function SemiCircleGauge({ value, min, max, unit, type }) {
           clipPath={`url(#${topHalfId})`}
         />
 
-        {/* Progress arc */}
-        <path
-          d="M 15 65 A 42 42 0 0 1 115 65"
-          fill="none"
-          stroke={`url(#${gradId})`}
-          strokeWidth="6"
-          strokeLinecap="butt"
-          clipPath={`url(#${topHalfId})`}
-          clipPath={`url(#${wiperClipId})`}
-          className="transition-all duration-700 ease-out"
-        />
+        {/* Progress arc – apply topHalf clip on a group, then wiper clip on the arc */}
+        <g clipPath={`url(#${topHalfId})`}>
+          <path
+            d="M 15 65 A 42 42 0 0 1 115 65"
+            fill="none"
+            stroke={`url(#${gradId})`}
+            strokeWidth="6"
+            strokeLinecap="butt"
+            clipPath={`url(#${wiperClipId})`}
+            className="transition-all duration-700 ease-out"
+          />
+        </g>
       </svg>
 
-      {/* Reading value */}
+      {/* Reading value – inside the gauge, aligned at bottom centre */}
       <div className="absolute bottom-[10px] left-1/2 -translate-x-1/2 text-center">
         <div className="text-lg font-bold text-gray-900 dark:text-white leading-none">
           {typeof value === "number" ? value.toFixed(2) : value}
@@ -112,7 +129,6 @@ export default function StatCard({ title, value: rawValue, unit, type, lastUpdat
   const min = thresholds?.min || 0;
   const max = thresholds?.max || 300;
 
-  // Safely convert to number for animation; fallback to 0 if not a number
   const numericValue = typeof rawValue === "number" ? rawValue : 0;
   const animatedValue = useAnimatedValue(numericValue, 600);
   const percentage = Math.min(100, Math.max(0, ((animatedValue - min) / (max - min)) * 100));
