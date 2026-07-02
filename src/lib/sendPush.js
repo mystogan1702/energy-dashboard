@@ -1,24 +1,17 @@
-const ONE_SIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID;   // paste from step 2
-const ONE_SIGNAL_REST_KEY = import.meta.env.VITE_ONESIGNAL_REST_KEY;;   // paste from step 2
-
+// utils/notifications.js (or wherever you keep it)
 export async function sendPushNotification(title, message, url) {
   try {
-    await fetch(`https://onesignal.com/api/v1/notifications?app_id=${ONE_SIGNAL_APP_ID}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${ONE_SIGNAL_REST_KEY}`,
-      },
-      body: JSON.stringify({
-        app_id: ONE_SIGNAL_APP_ID,
-        headings: { en: title },
-        contents: { en: message },
-        included_segments: ["All"],
-        url: url || "/notifications",
-        chrome_web_icon: "https://energy-dashboard-mystogan.vercel.app/pwa-192x192.png",
-      }),
+    const response = await fetch('/api/send-notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, message, url }),
     });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Push send failed:', error);
+    }
   } catch (err) {
-    console.error("Push send failed:", err);
+    console.error('Push send network error:', err);
   }
 }

@@ -23,6 +23,7 @@ import ChangePasswordPage from "./components/ChangePasswordPage";
 
 
 // Protected route wrapper
+// force rebuild
 function PrivateRoute({ children }) {
   const { currentUser } = useAuth();
   return currentUser ? children : <Navigate to="/login" />;
@@ -43,7 +44,6 @@ function AppContent() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-
       {/* Protected routes with shared Layout */}
       <Route
         path="/"
