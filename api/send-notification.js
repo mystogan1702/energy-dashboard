@@ -9,6 +9,7 @@ export default async function handler(req, res) {
   const APP_ID = process.env.ONESIGNAL_APP_ID;
 
   console.log('REST_KEY present:', !!REST_KEY);
+  console.log('OneSignal response:', JSON.stringify(data));
 
   if (!REST_KEY || !APP_ID) {
     return res.status(500).json({ error: 'Missing OneSignal credentials' });
