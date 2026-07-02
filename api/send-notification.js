@@ -13,7 +13,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch('https://onesignal.com/api/v1/notifications', {
+    // ✅ Use the new API endpoint
+    const response = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -30,9 +31,10 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+    console.log('OneSignal response:', JSON.stringify(data));
     return res.status(response.status).json(data);
   } catch (err) {
-    console.error('OneSignal proxy error:', err);
+    console.error('Proxy error:', err);
     return res.status(500).json({ error: 'Failed to send notification' });
   }
 }
