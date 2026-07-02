@@ -9,8 +9,11 @@ import {
   faBatteryFull,
   faWaveSquare,
   faChartBar,
+  faTachometerAlt,
+  faWifi,
 } from "@fortawesome/free-solid-svg-icons";
 
+// Icon mapping – extended to include new types
 const icons = {
   voltage: faBolt,
   current: faPlug,
@@ -18,26 +21,23 @@ const icons = {
   energy: faBatteryFull,
   frequency: faWaveSquare,
   powerFactor: faChartBar,
+  wifiSpeed: faTachometerAlt,
+  wifiName: faWifi,
 };
 
 function SemiCircleGauge({ value, min, max, unit, type }) {
   const percentage = Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
 
-  // Glass‑inspired semi‑transparent colours
   let colorStart, colorEnd;
-  if (percentage > 90) {
-    colorStart = "rgba(248, 113, 113, 0.75)"; // #f87171 with 75% opacity
-    colorEnd   = "rgba(239, 68, 68, 0.75)";   // #ef4444
-  } else if (percentage > 75) {
-    colorStart = "rgba(251, 146, 60, 0.75)";
-    colorEnd   = "rgba(249, 115, 22, 0.75)";
-  } else {
-    colorStart = "rgba(74, 222, 128, 0.75)";
-    colorEnd   = "rgba(34, 197, 94, 0.75)";
-  }
+  if (percentage > 90) { colorStart = "rgba(248, 113, 113, 0.75)"; colorEnd = "rgba(239, 68, 68, 0.75)"; }
+  else if (percentage > 75) { colorStart = "rgba(251, 146, 60, 0.75)"; colorEnd = "rgba(249, 115, 22, 0.75)"; }
+  else { colorStart = "rgba(74, 222, 128, 0.75)"; colorEnd = "rgba(34, 197, 94, 0.75)"; }
 
-  // The arc’s path is drawn from x=15 to x=115, stroke width = 6.
-  // The stroke extends 3 px beyond the path – left edge is at 12, right edge at 118.
+  // Unique IDs per card – critical fix for multiple gauges on screen
+  const gradId = `gaugeGrad-${type}`;
+  const wiperClipId = `wiperClip-${type}`;
+  const topHalfId = `topHalf-${type}`;
+
   const wiperX = 12;
   const wiperWidth = 106;
 
@@ -45,18 +45,13 @@ function SemiCircleGauge({ value, min, max, unit, type }) {
     <div className="relative w-[130px] h-[75px]">
       <svg width="130" height="75" viewBox="0 0 130 75" className="absolute inset-0">
         <defs>
-          {/* Glassy drop shadow */}
-          <filter id="arcGlow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.15)" />
-          </filter>
-
-          <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor={colorStart} />
             <stop offset="100%" stopColor={colorEnd} />
           </linearGradient>
 
           {/* Wiper clip – reveals the arc from left to right */}
-          <clipPath id="wiperClip">
+          <clipPath id={wiperClipId}>
             <rect
               x={wiperX}
               y="0"
@@ -70,13 +65,13 @@ function SemiCircleGauge({ value, min, max, unit, type }) {
             />
           </clipPath>
 
-          {/* Clip to the top semicircle (hides bottom half) */}
-          <clipPath id="topHalf">
+          {/* Top semicircle clip (hides bottom half) */}
+          <clipPath id={topHalfId}>
             <rect x="0" y="0" width="130" height="65" />
           </clipPath>
         </defs>
 
-        {/* Background track (full semicircle, butt cap to avoid rounding) */}
+        {/* Background track */}
         <path
           d="M 15 65 A 42 42 0 0 1 115 65"
           fill="none"
@@ -84,27 +79,26 @@ function SemiCircleGauge({ value, min, max, unit, type }) {
           strokeWidth="6"
           strokeLinecap="butt"
           className="text-gray-200 dark:text-gray-700"
-          clipPath="url(#topHalf)"
+          clipPath={`url(#${topHalfId})`}
         />
 
-        {/* Glassy progress arc – with drop shadow and semi‑transparent gradient */}
+        {/* Progress arc */}
         <path
           d="M 15 65 A 42 42 0 0 1 115 65"
           fill="none"
-          stroke="url(#gaugeGrad)"
+          stroke={`url(#${gradId})`}
           strokeWidth="6"
           strokeLinecap="butt"
-          clipPath="url(#topHalf)"
-          clipPath="url(#wiperClip)"
-          filter="url(#arcGlow)"
+          clipPath={`url(#${topHalfId})`}
+          clipPath={`url(#${wiperClipId})`}
           className="transition-all duration-700 ease-out"
         />
       </svg>
 
-      {/* Reading value – inside the gauge, aligned at bottom centre */}
-      <div className="absolute bottom-[6px] left-1/2 -translate-x-1/2 text-center">
+      {/* Reading value */}
+      <div className="absolute bottom-[10px] left-1/2 -translate-x-1/2 text-center">
         <div className="text-lg font-bold text-gray-900 dark:text-white leading-none">
-          {value.toFixed(2)}
+          {typeof value === "number" ? value.toFixed(2) : value}
         </div>
         {unit && (
           <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{unit}</div>
@@ -117,7 +111,10 @@ function SemiCircleGauge({ value, min, max, unit, type }) {
 export default function StatCard({ title, value: rawValue, unit, type, lastUpdated, thresholds }) {
   const min = thresholds?.min || 0;
   const max = thresholds?.max || 300;
-  const animatedValue = useAnimatedValue(rawValue, 600);
+
+  // Safely convert to number for animation; fallback to 0 if not a number
+  const numericValue = typeof rawValue === "number" ? rawValue : 0;
+  const animatedValue = useAnimatedValue(numericValue, 600);
   const percentage = Math.min(100, Math.max(0, ((animatedValue - min) / (max - min)) * 100));
 
   let status = "normal";
@@ -127,7 +124,7 @@ export default function StatCard({ title, value: rawValue, unit, type, lastUpdat
   return (
     <div className="glass-card flex flex-col items-center !p-2 relative">
       {/* Top‑left icon */}
-      <div className="absolute top-3 left-3 text-2xl leading-none text-gray-500 dark:text-gray-400">
+      <div className="absolute top-3 left-3 text-3xl leading-none text-gray-500 dark:text-gray-400">
         <FontAwesomeIcon icon={icons[type] || faChartBar} />
       </div>
       {/* Top‑right glass status prism */}
