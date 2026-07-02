@@ -8,9 +8,6 @@ export default async function handler(req, res) {
   const REST_KEY = process.env.ONESIGNAL_REST_API_KEY;
   const APP_ID = process.env.ONESIGNAL_APP_ID;
 
-  console.log('REST_KEY present:', !!REST_KEY);
-  console.log('OneSignal response:', JSON.stringify(data));
-
   if (!REST_KEY || !APP_ID) {
     return res.status(500).json({ error: 'Missing OneSignal credentials' });
   }
@@ -20,7 +17,6 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Fixed: Authorization must be "Basic <base64 of REST_KEY:>"
         Authorization: `Basic ${Buffer.from(`${REST_KEY}:`).toString('base64')}`,
       },
       body: JSON.stringify({
