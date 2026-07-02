@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/(OneSignalSDKWorker\\.js|firebase-messaging-sw\\.js|sw\\.js|workbox-.*\\.js|manifest\\.webmanifest|pwa-.*\\.png|favicon\\.ico|apple-touch-icon\\.png)",
+      "destination": "/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
