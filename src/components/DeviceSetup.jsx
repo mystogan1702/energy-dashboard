@@ -49,6 +49,17 @@ function Toast({ message, type = "success", visible, onClose }) {
 /* -------- ESP32 Owner UID (always added) -------- */
 const ESP32_OWNER_UID = "DhYWe9i4ojajr0kh3eyS70o0TNs2";
 
+/* -------- Pulsing dot animation (injected style) -------- */
+const pulseStyle = `
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+  .pulse-dot {
+    animation: pulse-dot 2s infinite ease-in-out;
+  }
+`;
+
 export default function DeviceSetup() {
   const { devices, loading: devicesLoading } = useUserDevices();
   const { currentUser } = useAuth();
@@ -80,9 +91,44 @@ export default function DeviceSetup() {
   const [masterKeyError, setMasterKeyError] = useState("");
   const [verifyingKey, setVerifyingKey] = useState(false);
 
+  // Online status map: deviceId -> boolean
+  const [onlineStatus, setOnlineStatus] = useState({});
+
   useEffect(() => {
     if (devices) setLocalDevices(devices);
   }, [devices]);
+
+  // Fetch online status for all devices periodically
+  useEffect(() => {
+    const fetchStatus = async () => {
+      const statusMap = {};
+      for (const device of localDevices) {
+        try {
+          const statusRef = doc(db, "devices", device.id, "status", "current");
+          const snap = await getDoc(statusRef);
+          if (snap.exists()) {
+            const data = snap.data();
+            // If lastSeen is within the last 2 minutes, consider online
+            const lastSeen = data.lastSeen?.seconds
+              ? new Date(data.lastSeen.seconds * 1000)
+              : null;
+            const now = new Date();
+            const twoMinAgo = new Date(now.getTime() - 2 * 60 * 1000);
+            statusMap[device.id] = lastSeen && lastSeen > twoMinAgo;
+          } else {
+            statusMap[device.id] = false;
+          }
+        } catch {
+          statusMap[device.id] = false;
+        }
+      }
+      setOnlineStatus(statusMap);
+    };
+
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 10000); // refresh every 10 seconds
+    return () => clearInterval(interval);
+  }, [localDevices]);
 
   const showToast = useCallback((msg, type = "success") => {
     setToast({ message: msg, type, visible: true });
@@ -91,7 +137,6 @@ export default function DeviceSetup() {
 
   // ---------- Add / Edit form handlers ----------
   const openAdd = () => {
-    // Auto‑include current user + ESP32 UID for new devices
     const defaultOwners = currentUser ? [currentUser.uid, ESP32_OWNER_UID] : [];
     setForm({ deviceId: "", owners: defaultOwners });
     setNewOwnerInput("");
@@ -117,7 +162,6 @@ export default function DeviceSetup() {
   };
 
   const handleRemoveOwner = (uidToRemove) => {
-    // Prevent removal of the current user and the ESP32 owner
     if (uidToRemove === currentUser?.uid || uidToRemove === ESP32_OWNER_UID) return;
     setForm((prev) => ({
       ...prev,
@@ -415,6 +459,8 @@ export default function DeviceSetup() {
 
   return (
     <>
+      {/* Pulsing animation style */}
+      <style>{pulseStyle}</style>
       <Toast message={toast.message} type={toast.type} visible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
 
       {!localDevices.length && !showAddForm ? (
@@ -459,8 +505,16 @@ export default function DeviceSetup() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-white">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-white relative">
                       <FontAwesomeIcon icon={faMobileAlt} />
+                      {/* Online/Offline dot */}
+                      <span
+                        className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-900 backdrop-blur-sm ${
+                          onlineStatus[device.id]
+                            ? "bg-green-400 pulse-dot"
+                            : "bg-gray-400"
+                        }`}
+                      />
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white">{device.id}</h3>
@@ -565,7 +619,6 @@ export default function DeviceSetup() {
                               uid.substring(0, 12) + "…"
                             )}
                           </span>
-                          {/* Only allow removal of additional owners */}
                           {uid !== currentUser?.uid && uid !== ESP32_OWNER_UID && (
                             <button
                               onClick={() => handleRemoveOwner(uid)}
