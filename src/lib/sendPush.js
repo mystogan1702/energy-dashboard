@@ -1,9 +1,9 @@
-const ONE_SIGNAL_APP_ID = "45fad956-4485-4484-aacb-582da8a98b48";
+const ONE_SIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID;   // paste from step 2
 const ONE_SIGNAL_REST_KEY = import.meta.env.VITE_ONESIGNAL_REST_KEY;;   // paste from step 2
 
 export async function sendPushNotification(title, message, url) {
   try {
-    await fetch("https://onesignal.com/api/v1/notifications?app_id=45fad956-4485-4484-aacb-582da8a98b48", {
+    await fetch(`https://onesignal.com/api/v1/notifications?app_id=${ONE_SIGNAL_APP_ID}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
