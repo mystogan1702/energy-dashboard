@@ -1,24 +1,18 @@
 {
-  "rewrites": [
+  "routes": [
     {
-      "source": "/OneSignalSDKWorker.js",
-      "destination": "/OneSignalSDKWorker.js"
+      "src": "/OneSignalSDKWorker.js",
+      "dest": "/OneSignalSDKWorker.js"
     },
     {
-      "source": "/pwa-192x192.png",
-      "destination": "/pwa-192x192.png"
+      "src": "/pwa-192x192.png",
+      "dest": "/pwa-192x192.png"
     },
     {
-      "source": "/pwa-512x512.png",
-      "destination": "/pwa-512x512.png"
+      "src": "/pwa-512x512.png",
+      "dest": "/pwa-512x512.png"
     },
-    {
-      "source": "/manifest.webmanifest",
-      "destination": "/manifest.webmanifest"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
