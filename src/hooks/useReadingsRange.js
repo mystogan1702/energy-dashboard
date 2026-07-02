@@ -2,36 +2,30 @@ import { useState, useEffect, useMemo } from "react";
 import { collection, query, where, orderBy, getDocs, limit } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
-const DEVICE_ID = "device_001";
 const MAX_DOCS = 5000;
 
 function formatLabel(date, bucketMs) {
   if (bucketMs >= 365 * 24 * 60 * 60 * 1000) {
-    // yearly bucket → show year
     return date.getFullYear().toString();
   } else if (bucketMs >= 28 * 24 * 60 * 60 * 1000) {
-    // monthly bucket → show short month name
     return date.toLocaleDateString("en-US", { month: "short" });
   } else if (bucketMs >= 24 * 60 * 60 * 1000) {
-    // daily bucket → show "Mon, Jun 1" or "Jun 1"
     const options = { weekday: "short", month: "short", day: "numeric" };
     return date.toLocaleDateString("en-US", options);
   } else if (bucketMs >= 60 * 60 * 1000) {
-    // hourly bucket → show time "6 AM"
     return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   } else {
-    // minute or raw → show full time "6:05 AM"
     return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" });
   }
 }
 
-export function useReadingsRange(start, end, aggregation = "auto") {
+export function useReadingsRange(start, end, aggregation = "auto", deviceId = "device_001") {
   const [rawData, setRawData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!start || !end) {
+    if (!start || !end || !deviceId) {
       setRawData([]);
       setLoading(false);
       return;
@@ -46,7 +40,7 @@ export function useReadingsRange(start, end, aggregation = "auto") {
       setLoading(true);
       setError(null);
       try {
-        const readingsRef = collection(db, "devices", DEVICE_ID, "readings");
+        const readingsRef = collection(db, "devices", deviceId, "readings");
         const q = query(
           readingsRef,
           where("timestamp", ">=", startTimestamp),
@@ -67,14 +61,13 @@ export function useReadingsRange(start, end, aggregation = "auto") {
     };
 
     fetchData();
-  }, [start, end]);
+  }, [start, end, deviceId]);
 
   const aggregatedData = useMemo(() => {
     if (!rawData.length) return [];
 
     const rangeMs = end - start;
 
-    // Determine bucket size in milliseconds based on aggregation param
     let bucketMs;
     if (aggregation === "auto") {
       if (rangeMs <= 6 * 60 * 60 * 1000) bucketMs = 5 * 60 * 1000;
@@ -82,9 +75,8 @@ export function useReadingsRange(start, end, aggregation = "auto") {
       else if (rangeMs <= 7 * 24 * 60 * 60 * 1000) bucketMs = 60 * 60 * 1000;
       else bucketMs = 24 * 60 * 60 * 1000;
     } else if (aggregation === "raw") {
-      bucketMs = 0; // no bucketing, use every reading
+      bucketMs = 0;
     } else {
-      // predefined intervals: "1min", "5min", etc.
       const map = {
         "1min": 60 * 1000,
         "5min": 5 * 60 * 1000,
@@ -93,7 +85,7 @@ export function useReadingsRange(start, end, aggregation = "auto") {
         "1hour": 60 * 60 * 1000,
         "1day": 24 * 60 * 60 * 1000,
         "1week": 7 * 24 * 60 * 60 * 1000,
-        "1month": 30 * 24 * 60 * 60 * 1000, // approximate
+        "1month": 30 * 24 * 60 * 60 * 1000,
       };
       bucketMs = map[aggregation] || 60 * 60 * 1000;
     }
@@ -107,7 +99,6 @@ export function useReadingsRange(start, end, aggregation = "auto") {
 
       let bucketTime;
       if (bucketMs === 0) {
-        // raw: keep exact timestamp
         bucketTime = ts;
       } else {
         bucketTime = new Date(Math.floor(ts.getTime() / bucketMs) * bucketMs);

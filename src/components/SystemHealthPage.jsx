@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useUserDevices } from "../hooks/useUserDevices";
+import { useSelectedDevice } from "../hooks/useSelectedDevice";
 import { useDeviceStatus } from "../hooks/useDeviceStatus";
 import DeviceSelector from "./DeviceSelector";
 import { db } from "../lib/firebase";
@@ -22,7 +22,7 @@ import {
   faHeartbeat,
 } from "@fortawesome/free-solid-svg-icons";
 
-/* -------- Polished Loading Spinner -------- */
+/* -------- Spinner / Empty / Error (unchanged) -------- */
 function Spinner() {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -32,7 +32,6 @@ function Spinner() {
   );
 }
 
-/* -------- No Devices State (same as Dashboard) -------- */
 function NoDevices() {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -55,22 +54,6 @@ function NoDevices() {
   );
 }
 
-/* -------- No Status Data State (device selected but no status document) -------- */
-function NoStatus() {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6">
-        <FontAwesomeIcon icon={faHeartbeat} className="text-5xl text-gray-400 dark:text-gray-500" />
-      </div>
-      <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Device is offline</h3>
-      <p className="text-gray-500 dark:text-gray-400 max-w-md">
-        The device hasn't reported its health status yet. It may be powered off, disconnected from WiFi, or still booting.
-      </p>
-    </div>
-  );
-}
-
-/* -------- Error State -------- */
 function HealthError({ message }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -94,18 +77,14 @@ function HealthError({ message }) {
   );
 }
 
-/* -------- Main SystemHealthPage Component -------- */
+/* -------- Main SystemHealthPage – mobile button layout -------- */
 export default function SystemHealthPage() {
-  const [selectedDevice, setSelectedDevice] = useState("");
-  const { devices, loading: devicesLoading } = useUserDevices();
+  const { selectedDevice, setSelectedDevice, devices, loading: devicesLoading } =
+    useSelectedDevice();
   const { status, loading: statusLoading, error } = useDeviceStatus(selectedDevice);
   const [restarting, setRestarting] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [modal, setModal] = useState({ open: false, type: "", message: "" });
-
-  useEffect(() => {
-    if (devices.length > 0 && !selectedDevice) setSelectedDevice(devices[0].id);
-  }, [devices, selectedDevice]);
 
   const openConfirm = (type) => {
     if (type === "restart") {
@@ -166,9 +145,19 @@ export default function SystemHealthPage() {
   // ---- State handling ----
   if (devicesLoading || statusLoading) return <Spinner />;
   if (!devices.length) return <NoDevices />;
-  if (!selectedDevice) return <NoDevices />; // fallback
   if (error) return <HealthError message={error} />;
-  if (!status) return <NoStatus />;
+
+  // Use fallback values when status is null
+  const safeStatus = status || {
+    rssi: 0,
+    uptime: 0,
+    freeHeap: 0,
+    networkSpeed: null,
+    dataTransferred: null,
+    ssid: null,
+    firmwareVersion: "—",
+    resetReason: "—",
+  };
 
   const formatUptime = (seconds) => {
     const d = Math.floor(seconds / 86400);
@@ -178,52 +167,61 @@ export default function SystemHealthPage() {
     return `${h}h ${m}m`;
   };
 
-  const rssiPercent = Math.min(100, Math.max(0, 2 * (status.rssi + 100)));
-  const rssiColor =
-    status.rssi > -50
+  const rssiPercent = safeStatus.rssi ? Math.min(100, Math.max(0, 2 * (safeStatus.rssi + 100))) : 0;
+  const rssiColor = safeStatus.rssi
+    ? safeStatus.rssi > -50
       ? "from-green-400 to-emerald-500"
-      : status.rssi > -70
+      : safeStatus.rssi > -70
       ? "from-yellow-400 to-amber-500"
-      : "from-red-400 to-rose-500";
+      : "from-red-400 to-rose-500"
+    : "from-gray-400 to-gray-500";
 
-  const heapPercent = Math.min(100, Math.round((status.freeHeap / (status.freeHeap + 200000)) * 100));
+  const heapPercent = safeStatus.freeHeap
+    ? Math.min(100, Math.round((safeStatus.freeHeap / (safeStatus.freeHeap + 200000)) * 100))
+    : 0;
 
   return (
-    <div className="space-y-8">
-      {/* Header with action buttons */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-4 sm:space-y-8">
+      {/* Header – wraps on mobile so buttons go to a new row */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">System Health</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">ESP32 device diagnostics &amp; control</p>
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">System Health</h2>
+          <p className="text-[10px] sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            ESP32 device diagnostics &amp; control
+          </p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <DeviceSelector selectedDevice={selectedDevice} onSelect={setSelectedDevice} />
-          <button
-            onClick={() => openConfirm("update")}
-            disabled={updating}
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-medium transition disabled:opacity-50"
-          >
-            {updating ? "Sending..." : "Update Firmware"}
-          </button>
-          <button
-            onClick={() => openConfirm("restart")}
-            disabled={restarting}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition disabled:opacity-50"
-          >
-            {restarting ? "Sending..." : "Restart Device"}
-          </button>
+        <DeviceSelector selectedDevice={selectedDevice} onSelect={setSelectedDevice} />
+
+        {/* Buttons container – on mobile, full width, centered, with a 2‑column grid */}
+        <div className="w-full sm:w-auto order-last sm:order-none flex justify-center">
+          <div className="grid grid-cols-2 gap-2 w-full max-w-xs">
+            <button
+              onClick={() => openConfirm("update")}
+              disabled={updating}
+              className="w-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg sm:rounded-xl transition disabled:opacity-50"
+            >
+              {updating ? "Sending..." : "Update"}
+            </button>
+            <button
+              onClick={() => openConfirm("restart")}
+              disabled={restarting}
+              className="w-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg sm:rounded-xl transition disabled:opacity-50"
+            >
+              {restarting ? "Sending..." : "Restart"}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Health cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Health cards – 2 cols on mobile (tiny), 3 cols on desktop (normal) */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-6">
         {/* WiFi Signal */}
-        <div className="glass-card flex flex-col items-center p-6">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">
-            <FontAwesomeIcon icon={faWifi} className="mr-2" />
+        <div className="glass-card flex flex-col items-center p-2 sm:p-6">
+          <h3 className="text-[10px] sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-4">
+            <FontAwesomeIcon icon={faWifi} className="mr-1 text-xs sm:text-base" />
             WiFi Signal
           </h3>
-          <div className="relative w-32 h-32">
+          <div className="relative w-16 h-16 sm:w-32 sm:h-32">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
               <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="8" className="text-gray-200 dark:text-gray-700" />
               <circle
@@ -242,98 +240,98 @@ export default function SystemHealthPage() {
               </defs>
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">{status.rssi}</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">dBm</span>
+              <span className="text-base sm:text-2xl font-bold text-gray-900 dark:text-white">{safeStatus.rssi}</span>
+              <span className="text-[8px] sm:text-xs text-gray-500 dark:text-gray-400">dBm</span>
             </div>
           </div>
-          <p className="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-            {status.rssi > -50 ? "Excellent" : status.rssi > -70 ? "Good" : "Weak"}
+          <p className="mt-1.5 sm:mt-3 text-[10px] sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+            {safeStatus.rssi ? (safeStatus.rssi > -50 ? "Excellent" : safeStatus.rssi > -70 ? "Good" : "Weak") : "No signal"}
           </p>
         </div>
 
         {/* Uptime */}
-        <div className="glass-card p-6 space-y-4">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            <FontAwesomeIcon icon={faClock} className="mr-2" />
+        <div className="glass-card p-2 sm:p-6 space-y-1.5 sm:space-y-4">
+          <h3 className="text-[10px] sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+            <FontAwesomeIcon icon={faClock} className="mr-1 text-xs sm:text-base" />
             Uptime
           </h3>
-          <div className="flex items-end gap-2">
-            <span className="text-3xl font-bold text-gray-900 dark:text-white">{formatUptime(status.uptime)}</span>
+          <div className="flex items-end gap-1 sm:gap-2">
+            <span className="text-lg sm:text-3xl font-bold text-gray-900 dark:text-white">{formatUptime(safeStatus.uptime)}</span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 sm:h-2">
             <div
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-700"
-              style={{ width: `${Math.min(100, (status.uptime % 86400) / 86400 * 100)}%` }}
+              className="bg-gradient-to-r from-blue-500 to-cyan-500 h-1 sm:h-2 rounded-full transition-all duration-700"
+              style={{ width: `${Math.min(100, (safeStatus.uptime % 86400) / 86400 * 100)}%` }}
             />
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Last boot: {status.resetReason}</p>
+          <p className="text-[8px] sm:text-xs text-gray-500 dark:text-gray-400">Last boot: {safeStatus.resetReason}</p>
         </div>
 
         {/* Free memory */}
-        <div className="glass-card p-6 space-y-4">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            <FontAwesomeIcon icon={faMemory} className="mr-2" />
+        <div className="glass-card p-2 sm:p-6 space-y-1.5 sm:space-y-4">
+          <h3 className="text-[10px] sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+            <FontAwesomeIcon icon={faMemory} className="mr-1 text-xs sm:text-base" />
             Free Memory
           </h3>
-          <div className="flex items-end gap-2">
-            <span className="text-3xl font-bold text-gray-900 dark:text-white">{(status.freeHeap / 1024).toFixed(1)}</span>
-            <span className="text-sm text-gray-500 dark:text-gray-400 mb-1">KB</span>
+          <div className="flex items-end gap-1 sm:gap-2">
+            <span className="text-lg sm:text-3xl font-bold text-gray-900 dark:text-white">{(safeStatus.freeHeap / 1024).toFixed(1)}</span>
+            <span className="text-[8px] sm:text-sm text-gray-500 dark:text-gray-400 mb-0.5">KB</span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 sm:h-2">
             <div
-              className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-700"
+              className="bg-gradient-to-r from-purple-500 to-pink-500 h-1 sm:h-2 rounded-full transition-all duration-700"
               style={{ width: `${heapPercent}%` }}
             />
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{status.freeHeap} bytes free</p>
+          <p className="text-[8px] sm:text-xs text-gray-500 dark:text-gray-400">{safeStatus.freeHeap} bytes free</p>
         </div>
 
         {/* WiFi Speed & SSID */}
-        <div className="glass-card p-6 flex flex-col items-center justify-center">
-          <FontAwesomeIcon icon={faTachometerAlt} className="text-4xl mb-2 text-blue-500" />
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">WiFi Speed</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-            {status.networkSpeed || "—"} <span className="text-base font-normal">Mbps</span>
+        <div className="glass-card p-2 sm:p-6 flex flex-col items-center justify-center">
+          <FontAwesomeIcon icon={faTachometerAlt} className="text-lg sm:text-4xl mb-0.5 sm:mb-2 text-blue-500" />
+          <h3 className="text-[10px] sm:text-sm font-medium text-gray-500 dark:text-gray-400">WiFi Speed</h3>
+          <p className="text-base sm:text-2xl font-bold text-gray-900 dark:text-white mt-0.5 sm:mt-1">
+            {safeStatus.networkSpeed || "—"} <span className="text-[10px] sm:text-base font-normal">Mbps</span>
           </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 font-mono">
-            {status.ssid || "Unknown SSID"}
+          <p className="text-[8px] sm:text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-mono">
+            {safeStatus.ssid || "—"}
           </p>
-          <p className="text-xs text-gray-400 mt-2">Connected to</p>
+          <p className="text-[8px] sm:text-xs text-gray-400 mt-0.5">Connected to</p>
         </div>
 
         {/* Data Transferred */}
-        <div className="glass-card p-6 flex flex-col items-center justify-center">
-          <FontAwesomeIcon icon={faDatabase} className="text-4xl mb-2 text-purple-500" />
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Data Transferred</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-            {status.dataTransferred || "0"} <span className="text-base font-normal">MB</span>
+        <div className="glass-card p-2 sm:p-6 flex flex-col items-center justify-center">
+          <FontAwesomeIcon icon={faDatabase} className="text-lg sm:text-4xl mb-0.5 sm:mb-2 text-purple-500" />
+          <h3 className="text-[10px] sm:text-sm font-medium text-gray-500 dark:text-gray-400">Data Transferred</h3>
+          <p className="text-base sm:text-2xl font-bold text-gray-900 dark:text-white mt-0.5 sm:mt-1">
+            {safeStatus.dataTransferred || "0"} <span className="text-[10px] sm:text-base font-normal">MB</span>
           </p>
-          <p className="text-xs text-gray-400 mt-2">Total bytes sent/received</p>
+          <p className="text-[8px] sm:text-xs text-gray-400 mt-0.5">Total bytes sent/received</p>
         </div>
 
         {/* Firmware */}
-        <div className="glass-card p-6 flex flex-col items-center justify-center">
-          <FontAwesomeIcon icon={faDna} className="text-4xl mb-2 text-green-500" />
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Firmware Version</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{status.firmwareVersion}</p>
+        <div className="glass-card p-2 sm:p-6 flex flex-col items-center justify-center">
+          <FontAwesomeIcon icon={faDna} className="text-lg sm:text-4xl mb-0.5 sm:mb-2 text-green-500" />
+          <h3 className="text-[10px] sm:text-sm font-medium text-gray-500 dark:text-gray-400">Firmware Version</h3>
+          <p className="text-base sm:text-2xl font-bold text-gray-900 dark:text-white mt-0.5 sm:mt-1">{safeStatus.firmwareVersion}</p>
         </div>
 
         {/* Boot reason */}
-        <div className="glass-card p-6 flex flex-col items-center justify-center">
-          <FontAwesomeIcon icon={faRedo} className="text-4xl mb-2 text-gray-500" />
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Last Boot Reason</h3>
-          <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{status.resetReason}</p>
+        <div className="glass-card p-2 sm:p-6 flex flex-col items-center justify-center">
+          <FontAwesomeIcon icon={faRedo} className="text-lg sm:text-4xl mb-0.5 sm:mb-2 text-gray-500" />
+          <h3 className="text-[10px] sm:text-sm font-medium text-gray-500 dark:text-gray-400">Last Boot Reason</h3>
+          <p className="text-sm sm:text-xl font-bold text-gray-900 dark:text-white mt-0.5 sm:mt-1">{safeStatus.resetReason}</p>
         </div>
 
         {/* Device UID */}
-        <div className="glass-card p-6 flex flex-col items-center justify-center">
-          <FontAwesomeIcon icon={faIdBadge} className="text-4xl mb-2 text-gray-500" />
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Device UID</h3>
-          <p className="text-xs font-mono text-gray-700 dark:text-gray-300 mt-1 break-all">{selectedDevice}</p>
+        <div className="glass-card p-2 sm:p-6 flex flex-col items-center justify-center">
+          <FontAwesomeIcon icon={faIdBadge} className="text-lg sm:text-4xl mb-0.5 sm:mb-2 text-gray-500" />
+          <h3 className="text-[10px] sm:text-sm font-medium text-gray-500 dark:text-gray-400">Device UID</h3>
+          <p className="text-[8px] sm:text-xs font-mono text-gray-700 dark:text-gray-300 mt-0.5 sm:mt-1 break-all">{selectedDevice}</p>
         </div>
       </div>
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Modal (unchanged) */}
       {modal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeModal} />

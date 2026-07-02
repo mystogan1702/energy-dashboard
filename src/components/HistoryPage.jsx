@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useReadingsRange } from "../hooks/useReadingsRange";
+import { useSelectedDevice } from "../hooks/useSelectedDevice";
 import DateRangePicker from "./DateRangePicker";
 import {
   LineChart,
@@ -25,6 +26,7 @@ import {
   faSquare,
   faExclamationCircle,
 } from "@fortawesome/free-solid-svg-icons";
+import DeviceSelector from "./DeviceSelector";
 
 const allParameters = [
   { key: "voltage", label: "Voltage (V)", color: "#8884d8" },
@@ -49,6 +51,7 @@ const aggregationOptions = [
 ];
 
 export default function HistoryPage() {
+  const { selectedDevice, setSelectedDevice, devices, loading: devicesLoading } = useSelectedDevice();
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [selectedParams, setSelectedParams] = useState(["power"]);
@@ -63,7 +66,8 @@ export default function HistoryPage() {
   const { aggregatedData, rawData, loading, error } = useReadingsRange(
     startDate,
     endDate,
-    aggregation
+    aggregation,
+    selectedDevice || undefined
   );
 
   // During separate‑PDF generation, show only the current parameter
@@ -219,9 +223,9 @@ export default function HistoryPage() {
         return;
       }
 
-      // Wait 1600ms for the chart to fully re‑render after param change
+      // Wait 1500ms for the chart to fully re‑render after param change
       await new Promise((resolve) => {
-        timer = setTimeout(resolve, 1600);
+        timer = setTimeout(resolve, 1500);
       });
 
       try {
@@ -271,60 +275,49 @@ export default function HistoryPage() {
     pdf.text(title, pageWidth / 2, 15, { align: "center" });
 
     // 2. Parameter badges (rounded, coloured, separated by bullets)
-    const badgeY = 24; // top of badge row
+    const badgeY = 24;
     const badgeHeight = 7;
     const badgePadding = 2;
-    const bulletWidth = 3; // width of bullet text
     pdf.setFontSize(8);
     pdf.setFont("helvetica", "normal");
 
-    // Calculate total width needed for all badges + bullets
     let totalBadgeWidth = 0;
     const badgeMetrics = selectedParams.map((key) => {
       const param = allParameters.find((p) => p.key === key);
       const label = param?.label || key;
       const textWidth =
-        (pdf.getStringUnitWidth(label) * 8) / pdf.internal.scaleFactor; // approximate
+        (pdf.getStringUnitWidth(label) * 8) / pdf.internal.scaleFactor;
       const badgeWidth = textWidth + badgePadding * 2;
       return { label, color: param?.color || "#000000", badgeWidth };
     });
 
-    // Add bullet widths between badges
     const numBadges = badgeMetrics.length;
-    const totalBulletsWidth = numBadges > 1 ? (numBadges - 1) * 4 : 0; // bullet space
+    const totalBulletsWidth = numBadges > 1 ? (numBadges - 1) * 4 : 0;
     totalBadgeWidth =
       badgeMetrics.reduce((sum, m) => sum + m.badgeWidth, 0) + totalBulletsWidth;
 
-    // Center the whole badge row
     let currentX = (pageWidth - totalBadgeWidth) / 2;
 
     badgeMetrics.forEach((metric, idx) => {
       const { label, color, badgeWidth } = metric;
-
-      // Draw rounded filled rectangle
       const r = 2;
       const rgb = hexToRgb(color);
       pdf.setFillColor(rgb.r, rgb.g, rgb.b);
       pdf.roundedRect(currentX, badgeY, badgeWidth, badgeHeight, r, r, "F");
-
-      // Text in white (or black if color too light?)
       pdf.setTextColor(255, 255, 255);
       pdf.text(label, currentX + badgePadding, badgeY + 5);
-
       currentX += badgeWidth;
-
-      // Add bullet separator (except after last)
       if (idx < numBadges - 1) {
         currentX += 2;
         pdf.setTextColor(150, 150, 150);
         pdf.text("•", currentX, badgeY + 5);
-        currentX += 4; // space after bullet
+        currentX += 4;
       }
     });
 
     // 3. Charts grid (2 columns, 3 rows)
     const margin = 10;
-    const topGridY = badgeY + badgeHeight + 8; // start below badges
+    const topGridY = badgeY + badgeHeight + 8;
     const usableWidth = pageWidth - margin * 2;
     const usableHeight = pageHeight - topGridY - margin;
     const cols = 2;
@@ -387,30 +380,33 @@ export default function HistoryPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header + date range */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Header – title and device selector always in one row */}
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Historical Analytics</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Historical Analytics</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">View and export past energy data</p>
         </div>
+        <DeviceSelector selectedDevice={selectedDevice} onSelect={setSelectedDevice} />
       </div>
+
       <div className="glass-card">
         <DateRangePicker onApply={(s, e) => { setStartDate(s); setEndDate(e); }} />
       </div>
 
       {/* Controls row: parameter toggles + aggregation + export */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        {/* Parameter toggles – smaller buttons */}
+        <div className="flex flex-wrap gap-1">
           <button
             onClick={toggleAll}
             disabled={isGeneratingSeparatePdf}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition flex items-center gap-1 ${
+            className={`px-1.5 py-0.5 text-[9px] sm:text-[10px] rounded-full font-medium transition flex items-center gap-0.5 ${
               selectedParams.length === allParameters.length
                 ? "bg-blue-600 text-white shadow-md"
                 : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
             }`}
           >
-            <FontAwesomeIcon icon={selectedParams.length === allParameters.length ? faCheckSquare : faSquare} />
+            <FontAwesomeIcon icon={selectedParams.length === allParameters.length ? faCheckSquare : faSquare} className="text-[10px]" />
             All
           </button>
           {allParameters.map((param) => {
@@ -420,13 +416,13 @@ export default function HistoryPage() {
                 key={param.key}
                 onClick={() => toggleParam(param.key)}
                 disabled={isGeneratingSeparatePdf}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition flex items-center gap-1 ${
+                className={`px-1.5 py-0.5 text-[9px] sm:text-[10px] rounded-full font-medium transition flex items-center gap-0.5 ${
                   active
                     ? "bg-blue-600 text-white shadow-md"
                     : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
-                <FontAwesomeIcon icon={active ? faCheckSquare : faSquare} />
+                <FontAwesomeIcon icon={active ? faCheckSquare : faSquare} className="text-[10px]" />
                 {param.label}
               </button>
             );
@@ -437,30 +433,29 @@ export default function HistoryPage() {
           <select
             value={aggregation}
             onChange={(e) => setAggregation(e.target.value)}
-            className="input-field text-sm py-1.5 w-32"
+            className="input-field text-[10px] sm:text-sm py-1 w-24"
           >
             {aggregationOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
 
-          {/* Export dropdown with three options */}
           <div className="relative group">
-            <button className="btn-primary text-sm py-1.5 px-3 flex items-center gap-1" disabled={isGeneratingSeparatePdf}>
+            <button className="btn-primary text-[10px] sm:text-sm py-1 px-2 flex items-center gap-1" disabled={isGeneratingSeparatePdf}>
               <FontAwesomeIcon icon={faDownload} />
               Export
             </button>
-            <div className="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg hidden group-hover:block z-10">
-              <button onClick={exportCSV} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+            <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg hidden group-hover:block z-10">
+              <button onClick={exportCSV} className="w-full text-left px-3 py-1.5 text-[10px] sm:text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
                 <FontAwesomeIcon icon={faFileCsv} /> CSV
               </button>
-              <button onClick={exportExcel} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+              <button onClick={exportExcel} className="w-full text-left px-3 py-1.5 text-[10px] sm:text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
                 <FontAwesomeIcon icon={faFileExcel} /> Excel
               </button>
-              <button onClick={exportCombinedPdf} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+              <button onClick={exportCombinedPdf} className="w-full text-left px-3 py-1.5 text-[10px] sm:text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
                 <FontAwesomeIcon icon={faFilePdf} /> PDF (combined)
               </button>
-              <button onClick={startSeparatePdf} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+              <button onClick={startSeparatePdf} className="w-full text-left px-3 py-1.5 text-[10px] sm:text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
                 <FontAwesomeIcon icon={faFilePdf} /> PDF (separate)
               </button>
             </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { useUserDevices } from "../hooks/useUserDevices";
+import { useSelectedDevice } from "../hooks/useSelectedDevice";
 import { useDeviceConfig } from "../hooks/useDeviceConfig";
 import { useCommands } from "../hooks/useCommands";
 import { useAuth } from "../lib/AuthContext";
@@ -21,7 +21,7 @@ function Spinner() {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4">
       <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600" />
-      <p className="text-sm text-gray-500 dark:text-gray-400">Loading your settings…</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400">Loading settings…</p>
     </div>
   );
 }
@@ -88,10 +88,9 @@ function SettingsError({ message }) {
   );
 }
 
-/* -------- Main SettingsPage Component -------- */
+/* -------- Main SettingsPage Component – compact on mobile -------- */
 export default function SettingsPage() {
-  const [selectedDevice, setSelectedDevice] = useState("");
-  const { devices, loading: devicesLoading } = useUserDevices();
+  const { selectedDevice, setSelectedDevice, devices, loading: devicesLoading } = useSelectedDevice();
   const { config, loading: configLoading, error: configError, updateConfig } =
     useDeviceConfig(selectedDevice);
   const { sendCommand, sending: cmdSending } = useCommands(selectedDevice);
@@ -112,10 +111,6 @@ export default function SettingsPage() {
   useEffect(() => {
     if (config) setForm(config);
   }, [config]);
-
-  useEffect(() => {
-    if (devices.length > 0 && !selectedDevice) setSelectedDevice(devices[0].id);
-  }, [devices, selectedDevice]);
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
@@ -182,19 +177,23 @@ export default function SettingsPage() {
   if (configError) return <SettingsError message={configError} />;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
-      <div className="flex items-center gap-4">
+    <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
+      {/* Header – title and device selector always in one row */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Device Settings</h2>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">Configure thresholds &amp; preferences</p>
+        </div>
         <DeviceSelector selectedDevice={selectedDevice} onSelect={setSelectedDevice} />
       </div>
 
       {!config ? (
         <NoConfig deviceId={selectedDevice} />
       ) : (
-        <form onSubmit={openConfirm} className="glass-card space-y-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Device Settings</h2>
+        <form onSubmit={openConfirm} className="glass-card space-y-4 sm:space-y-6">
           {saveMsg && (
             <div
-              className={`p-3 rounded-xl text-sm ${
+              className={`p-2 sm:p-3 rounded-xl text-xs sm:text-sm ${
                 saveMsg.includes("success")
                   ? "bg-green-50 dark:bg-green-900/20 text-green-700"
                   : "bg-red-50 dark:bg-red-900/20 text-red-700"
@@ -204,24 +203,24 @@ export default function SettingsPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label className="stat-label">Device Name</label>
+              <label className="stat-label text-[10px] sm:text-xs">Device Name</label>
               <input
                 type="text"
                 name="deviceName"
                 value={form.deviceName || ""}
                 onChange={handleChange}
-                className="input-field"
+                className="input-field py-2 sm:py-3 text-sm"
               />
             </div>
             <div>
-              <label className="stat-label">Timezone</label>
+              <label className="stat-label text-[10px] sm:text-xs">Timezone</label>
               <select
                 name="timezone"
                 value={form.timezone || "Asia/Manila"}
                 onChange={handleChange}
-                className="input-field"
+                className="input-field py-2 sm:py-3 text-sm"
               >
                 <option value="Asia/Manila">Asia/Manila (GMT+8)</option>
                 <option value="UTC">UTC</option>
@@ -229,7 +228,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4">
             {[
               ["voltageMin", "Voltage Min (V)"],
               ["voltageMax", "Voltage Max (V)"],
@@ -241,37 +240,37 @@ export default function SettingsPage() {
               ["alertCooldownSec", "Alert Cooldown (s)"],
             ].map(([name, label]) => (
               <div key={name}>
-                <label className="stat-label">{label}</label>
+                <label className="stat-label text-[10px] sm:text-xs">{label}</label>
                 <input
                   type="number"
                   step="0.1"
                   name={name}
                   value={form[name] || ""}
                   onChange={handleChange}
-                  className="input-field"
+                  className="input-field py-2 sm:py-3 text-sm"
                 />
               </div>
             ))}
           </div>
 
-          <button type="submit" className="btn-primary w-full">
-            <FontAwesomeIcon icon={faSave} className="mr-2" />
+          <button type="submit" className="btn-primary w-full py-2 sm:py-3 text-sm sm:text-base">
+            <FontAwesomeIcon icon={faSave} className="mr-1.5 sm:mr-2" />
             Save Settings
           </button>
         </form>
       )}
 
-      <div className="glass-card">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+      <div className="glass-card space-y-3 sm:space-y-4">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
           Firmware Update (OTA)
         </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">
           Send an OTA command to the device.
         </p>
         <button
           onClick={handleOTA}
           disabled={cmdSending}
-          className="btn-primary bg-gradient-to-r from-orange-500 to-amber-500"
+          className="btn-primary bg-gradient-to-r from-orange-500 to-amber-500 py-2 sm:py-3 text-sm sm:text-base"
         >
           {cmdSending ? "Sending..." : "Trigger OTA"}
         </button>

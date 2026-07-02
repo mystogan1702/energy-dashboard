@@ -70,3 +70,18 @@ html {
 .animate-dropdown {
   animation: dropdown 0.2s ease-out;
 }
+
+/* ensure the portal container itself is on top */
+#datepicker-portal {
+  position: relative;
+  z-index: 9999 !important;
+}
+
+@keyframes toastPop {
+  0% { transform: scale(0.7); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-toastPop {
+  animation: toastPop 0.3s ease-out;
+}

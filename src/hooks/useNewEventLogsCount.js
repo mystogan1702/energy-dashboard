@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 export function useNewEventLogsCount(deviceId) {
-  // Retrieve the stored last visit timestamp from localStorage
   const getStoredLastVisit = () => {
     try {
       const stored = localStorage.getItem(`lastLogsVisit_${deviceId}`);
@@ -39,10 +38,10 @@ export function useNewEventLogsCount(deviceId) {
     return () => unsubscribe();
   }, [deviceId, lastVisit]);
 
-  // markViewed updates the last visit to now, which resets the count
-  const markViewed = () => {
+  // Stable markViewed – does NOT change on every render
+  const markViewed = useCallback(() => {
     setLastVisit(new Date());
-  };
+  }, []);
 
   return { count, markViewed };
 }

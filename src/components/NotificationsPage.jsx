@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useUserDevices } from "../hooks/useUserDevices";
+import { useSelectedDevice } from "../hooks/useSelectedDevice";
 import { useNotifications } from "../hooks/useNotifications";
 import { useUnreadNotificationsCount } from "../hooks/useUnreadNotificationsCount";
 import DeviceSelector from "./DeviceSelector";
@@ -73,15 +73,10 @@ function NotifError({ message }) {
 
 /* -------- Main NotificationsPage Component -------- */
 export default function NotificationsPage() {
-  const [selectedDevice, setSelectedDevice] = useState("");
-  const { devices, loading: devicesLoading } = useUserDevices();
+  const { selectedDevice, setSelectedDevice, devices, loading: devicesLoading } =
+    useSelectedDevice();
   const { notifications, loading: notifLoading } = useNotifications(selectedDevice);
   const { markViewed } = useUnreadNotificationsCount(selectedDevice || null);
-
-  // Auto‑select first device
-  useEffect(() => {
-    if (devices.length > 0 && !selectedDevice) setSelectedDevice(devices[0].id);
-  }, [devices, selectedDevice]);
 
   // Reset badge count when the page opens – notifications stay unread
   useEffect(() => {
@@ -93,16 +88,21 @@ export default function NotificationsPage() {
   if (!devices.length) return <NoDevices />;
   if (notifLoading) return <Spinner />;
 
-  // Note: If there is an error from the hook, we could add it later.
-  // For now the hook doesn't expose an error, but we have the empty state in NotificationList.
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <span className="font-medium dark:text-gray-300">Device:</span>
+      {/* Header – title and device selector always in one row */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+            Alerts & Notifications
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Real‑time alerts from your devices
+          </p>
+        </div>
         <DeviceSelector selectedDevice={selectedDevice} onSelect={setSelectedDevice} />
       </div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Alerts & Notifications</h2>
+
       <NotificationList notifications={notifications} deviceId={selectedDevice} />
     </div>
   );
