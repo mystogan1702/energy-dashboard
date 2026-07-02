@@ -9,9 +9,14 @@ export async function sendPushNotification(title, message, url) {
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('Push send failed:', error);
+      console.error('Push send failed:', JSON.stringify(error));
+    } else {
+      console.log('Push sent successfully');
     }
   } catch (err) {
     console.error('Push send network error:', err);
   }
 }
+
+// TEMPORARY – remove after testing
+window.sendPushNotification = sendPushNotification;
