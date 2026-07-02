@@ -160,7 +160,7 @@ export default function NotificationList({ notifications, deviceId }) {
     }
   };
 
-   ---------- Send push for new unread notifications ----------
+  // ---------- Send push for new unread notifications ----------
   useEffect(() => {
     const newUnread = notifications.filter(
       (n) => n.status === "unread" && !pushedIdsRef.current.has(n.id)
