@@ -19,7 +19,8 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Basic ${Buffer.from(`:${REST_KEY}`).toString('base64')}`,
+        // Fixed: Authorization must be "Basic <base64 of REST_KEY:>"
+        Authorization: `Basic ${Buffer.from(`${REST_KEY}:`).toString('base64')}`,
       },
       body: JSON.stringify({
         app_id: APP_ID,
