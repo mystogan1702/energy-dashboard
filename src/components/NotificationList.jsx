@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { sendPushNotification } from "../lib/sendPush";   // new
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBell,
@@ -15,7 +16,7 @@ import {
 
 const ITEMS_PER_PAGE = 20;
 
-/* ---------- Swipeable card wrapper (improved) ---------- */
+/* ---------- Swipeable card wrapper (unchanged) ---------- */
 function SwipeableCard({ children, onSwipeRight, onSwipeLeft }) {
   const cardRef = useRef(null);
   const startX = useRef(0);
@@ -42,9 +43,9 @@ function SwipeableCard({ children, onSwipeRight, onSwipeLeft }) {
     const diff = latestX.current - startX.current;
     setOffset(0);
     if (diff > 80) {
-      onSwipeRight?.();   // right → delete
+      onSwipeRight?.();
     } else if (diff < -80) {
-      onSwipeLeft?.();    // left → archive
+      onSwipeLeft?.();
     }
   };
 
@@ -104,7 +105,6 @@ function SwipeableCard({ children, onSwipeRight, onSwipeLeft }) {
 
 /* ---------- Main NotificationList ---------- */
 export default function NotificationList({ notifications, deviceId }) {
-  // "active" = unread + acknowledged, "archived" = archived, "all" = everything
   const [statusFilter, setStatusFilter] = useState("active");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -112,11 +112,12 @@ export default function NotificationList({ notifications, deviceId }) {
   const [showClearModal, setShowClearModal] = useState(false);
   const [clearing, setClearing] = useState(false);
 
-  // Combined filter – first by status group, then by priority
+  // Track which notification IDs have already been pushed
+  const pushedIdsRef = useRef(new Set());
+
+  // Combined filter
   const filtered = useMemo(() => {
     let result = notifications;
-
-    // Status group filtering
     if (statusFilter === "active") {
       result = result.filter((n) => n.status !== "archived");
     } else if (statusFilter === "archived") {
@@ -124,12 +125,9 @@ export default function NotificationList({ notifications, deviceId }) {
     } else if (statusFilter === "all") {
       // keep everything
     }
-
-    // Priority filtering
     if (priorityFilter !== "all") {
       result = result.filter((n) => n.priority === priorityFilter);
     }
-
     return result;
   }, [notifications, statusFilter, priorityFilter]);
 
@@ -161,6 +159,21 @@ export default function NotificationList({ notifications, deviceId }) {
       setShowClearModal(false);
     }
   };
+
+  // ---------- Send push for new unread notifications ----------
+  useEffect(() => {
+    const newUnread = notifications.filter(
+      (n) => n.status === "unread" && !pushedIdsRef.current.has(n.id)
+    );
+    newUnread.forEach((n) => {
+      sendPushNotification(
+        n.type || "PesoWatt Alert",
+        n.message || "An alert was triggered.",
+        "/notifications"
+      );
+      pushedIdsRef.current.add(n.id);
+    });
+  }, [notifications]);
 
   // Scroll to absolute top when page/filters change
   useEffect(() => {
@@ -253,8 +266,8 @@ export default function NotificationList({ notifications, deviceId }) {
         {pagedNotifications.map((n) => (
           <SwipeableCard
             key={n.id}
-            onSwipeRight={() => deleteNotification(n.id)}   // right → delete
-            onSwipeLeft={() => archiveNotification(n.id)}   // left → archive
+            onSwipeRight={() => deleteNotification(n.id)}
+            onSwipeLeft={() => archiveNotification(n.id)}
           >
             <div
               className={`border-l-4 rounded-r-xl p-3 shadow-sm transition-all hover:shadow-md ${
@@ -307,14 +320,24 @@ export default function NotificationList({ notifications, deviceId }) {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
-          <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50">
-            <FontAwesomeIcon icon={faChevronLeft} className="mr-1" /> Previous
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
+          >
+            <FontAwesomeIcon icon={faChevronLeft} className="mr-1" />
+            Previous
           </button>
-          <span className="text-xs text-gray-500 dark:text-gray-400">Page {currentPage} of {totalPages}</span>
-          <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50">
-            Next <FontAwesomeIcon icon={faChevronRight} className="ml-1" />
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
+          >
+            Next
+            <FontAwesomeIcon icon={faChevronRight} className="ml-1" />
           </button>
         </div>
       )}
@@ -330,8 +353,11 @@ export default function NotificationList({ notifications, deviceId }) {
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button onClick={() => setShowClearModal(false)} className="btn-secondary">Cancel</button>
-              <button onClick={clearAll} disabled={clearing}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition disabled:opacity-50">
+              <button
+                onClick={clearAll}
+                disabled={clearing}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition disabled:opacity-50"
+              >
                 {clearing ? "Clearing..." : "Delete All"}
               </button>
             </div>

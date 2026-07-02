@@ -39,72 +39,22 @@ import {
   faTachometerAlt,
   faTimes,
   faPlus,
+  faGripVertical,
 } from "@fortawesome/free-solid-svg-icons";
 
 /* -------- All available monitoring parameters -------- */
 const ALL_CARD_TYPES = [
-  {
-    key: "voltage",
-    label: "Voltage",
-    unit: "V",
-    icon: faBolt,
-    thresholds: (cfg) => ({ min: cfg?.voltageMin || 200, max: cfg?.voltageMax || 250 }),
-  },
-  {
-    key: "current",
-    label: "Current",
-    unit: "A",
-    icon: faPlug,
-    thresholds: (cfg) => ({ min: 0, max: cfg?.currentMax || 10 }),
-  },
-  {
-    key: "activePower",
-    label: "Active Power",
-    unit: "W",
-    icon: faBolt,
-    thresholds: (cfg) => ({ min: 0, max: cfg?.powerMax || 2000 }),
-  },
-  {
-    key: "energy",
-    label: "Energy",
-    unit: "kWh",
-    icon: faBatteryFull,
-    thresholds: (cfg) => ({ min: 0, max: 100 }),
-  },
-  {
-    key: "frequency",
-    label: "Frequency",
-    unit: "Hz",
-    icon: faWifi,
-    thresholds: (cfg) => ({
-      min: cfg?.frequencyMin || 49.5,
-      max: cfg?.frequencyMax || 50.5,
-    }),
-  },
-  {
-    key: "powerFactor",
-    label: "Power Factor",
-    unit: "",
-    icon: faChartBar,
-    thresholds: (cfg) => ({ min: cfg?.powerFactorMin || 0.8, max: 1.0 }),
-  },
-  {
-    key: "wifiSpeed",
-    label: "WiFi Speed",
-    unit: "Mbps",
-    icon: faTachometerAlt,
-    thresholds: () => ({ min: 0, max: 1000 }),
-  },
-  {
-    key: "wifiName",
-    label: "WiFi Name",
-    unit: "",
-    icon: faWifi,
-    thresholds: () => ({ min: 0, max: 100 }),
-  },
+  { key: "voltage", label: "Voltage", unit: "V", icon: faBolt, thresholds: (cfg) => ({ min: cfg?.voltageMin || 200, max: cfg?.voltageMax || 250 }) },
+  { key: "current", label: "Current", unit: "A", icon: faPlug, thresholds: (cfg) => ({ min: 0, max: cfg?.currentMax || 10 }) },
+  { key: "activePower", label: "Active Power", unit: "W", icon: faBolt, thresholds: (cfg) => ({ min: 0, max: cfg?.powerMax || 2000 }) },
+  { key: "energy", label: "Energy", unit: "kWh", icon: faBatteryFull, thresholds: (cfg) => ({ min: 0, max: 100 }) },
+  { key: "frequency", label: "Frequency", unit: "Hz", icon: faWifi, thresholds: (cfg) => ({ min: cfg?.frequencyMin || 49.5, max: cfg?.frequencyMax || 50.5 }) },
+  { key: "powerFactor", label: "Power Factor", unit: "", icon: faChartBar, thresholds: (cfg) => ({ min: cfg?.powerFactorMin || 0.8, max: 1.0 }) },
+  { key: "wifiSpeed", label: "WiFi Speed", unit: "Mbps", icon: faTachometerAlt, thresholds: () => ({ min: 0, max: 1000 }) },
+  { key: "wifiName", label: "WiFi Name", unit: "", icon: faWifi, thresholds: () => ({ min: 0, max: 100 }) },
 ];
 
-/* -------- Sortable Card – whole card draggable -------- */
+/* -------- Sortable Card – drag handle only -------- */
 function SortableCard({ id, children, onRemove }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
@@ -117,24 +67,28 @@ function SortableCard({ id, children, onRemove }) {
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className="relative group cursor-grab active:cursor-grabbing touch-none"
-    >
-      {/* Remove button – stopPropagation so it doesn't start a drag */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove(id);
-        }}
-        className="absolute top-2 right-2 z-20 p-1 rounded bg-white/70 dark:bg-gray-800/70 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
-        title="Remove card"
-      >
-        <FontAwesomeIcon icon={faTimes} />
-      </button>
+    <div ref={setNodeRef} style={style} className="relative group">
+      {/* Drag handle + remove button – both visible on hover */}
+      <div className="absolute top-2 left-2 right-2 flex justify-between z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          {...attributes}
+          {...listeners}
+          className="p-1 rounded bg-white/70 dark:bg-gray-800/70 text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 cursor-grab active:cursor-grabbing touch-none"
+          title="Drag to reorder"
+        >
+          <FontAwesomeIcon icon={faGripVertical} />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(id);
+          }}
+          className="p-1 rounded bg-white/70 dark:bg-gray-800/70 text-red-500 hover:text-red-700"
+          title="Remove card"
+        >
+          <FontAwesomeIcon icon={faTimes} />
+        </button>
+      </div>
       {children}
     </div>
   );
@@ -149,9 +103,7 @@ function AddCardModal({ open, onClose, activeTypes, onAdd }) {
     <div className="fixed inset-0 z-[10000] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-md w-full p-6 z-10">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
-          Add Monitoring Card
-        </h3>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Add Monitoring Card</h3>
         <div className="space-y-2">
           {ALL_CARD_TYPES.map((t) => {
             const disabled = activeTypes.includes(t.key);
@@ -159,10 +111,7 @@ function AddCardModal({ open, onClose, activeTypes, onAdd }) {
               <button
                 key={t.key}
                 disabled={disabled}
-                onClick={() => {
-                  onAdd(t.key);
-                  onClose();
-                }}
+                onClick={() => { onAdd(t.key); onClose(); }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
                   disabled
                     ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
@@ -171,17 +120,12 @@ function AddCardModal({ open, onClose, activeTypes, onAdd }) {
               >
                 <FontAwesomeIcon icon={t.icon} className="text-gray-400" />
                 <span>{t.label}</span>
-                {disabled && (
-                  <span className="ml-auto text-xs text-gray-400">Already added</span>
-                )}
+                {disabled && <span className="ml-auto text-xs text-gray-400">Already added</span>}
               </button>
             );
           })}
         </div>
-        <button
-          onClick={onClose}
-          className="mt-4 w-full py-2 text-sm bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-        >
+        <button onClick={onClose} className="mt-4 w-full py-2 text-sm bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">
           Cancel
         </button>
       </div>
@@ -238,11 +182,7 @@ export default function Dashboard() {
   const [activeCards, setActiveCards] = useState(() => {
     const saved = localStorage.getItem("pesowatt_active_cards");
     if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return ["voltage", "current", "activePower", "energy", "frequency", "powerFactor"];
-      }
+      try { return JSON.parse(saved); } catch { /* fallback */ }
     }
     return ["voltage", "current", "activePower", "energy", "frequency", "powerFactor"];
   });
@@ -253,9 +193,10 @@ export default function Dashboard() {
 
   const [addModalOpen, setAddModalOpen] = useState(false);
 
+  // Sensors – still needed for the DndContext, but now only the handle triggers dragging
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+    useSensor(PointerSensor),
+    useSensor(TouchSensor)
   );
 
   const handleDragEnd = (event) => {
@@ -283,7 +224,6 @@ export default function Dashboard() {
 
   if (devicesLoading) return <Spinner />;
 
-  // ----- NO DEVICES: show the modern empty state -----
   if (!devices.length) {
     return (
       <>
@@ -297,42 +237,17 @@ export default function Dashboard() {
   if (error) return <DashboardError message={error} />;
 
   const safeData = data || {
-    voltage: 0,
-    current: 0,
-    activePower: 0,
-    energy: 0,
-    frequency: 0,
-    powerFactor: 0,
-    timestamp: null,
+    voltage: 0, current: 0, activePower: 0, energy: 0,
+    frequency: 0, powerFactor: 0, timestamp: null,
   };
 
   const cardValues = {
-    voltage: {
-      value: safeData.voltage,
-      unit: "V",
-      thresholds: { min: config?.voltageMin || 200, max: config?.voltageMax || 250 },
-    },
-    current: {
-      value: safeData.current,
-      unit: "A",
-      thresholds: { min: 0, max: config?.currentMax || 10 },
-    },
-    activePower: {
-      value: safeData.activePower,
-      unit: "W",
-      thresholds: { min: 0, max: config?.powerMax || 2000 },
-    },
+    voltage: { value: safeData.voltage, unit: "V", thresholds: { min: config?.voltageMin || 200, max: config?.voltageMax || 250 } },
+    current: { value: safeData.current, unit: "A", thresholds: { min: 0, max: config?.currentMax || 10 } },
+    activePower: { value: safeData.activePower, unit: "W", thresholds: { min: 0, max: config?.powerMax || 2000 } },
     energy: { value: safeData.energy, unit: "kWh", thresholds: { min: 0, max: 100 } },
-    frequency: {
-      value: safeData.frequency,
-      unit: "Hz",
-      thresholds: { min: config?.frequencyMin || 49.5, max: config?.frequencyMax || 50.5 },
-    },
-    powerFactor: {
-      value: safeData.powerFactor,
-      unit: "",
-      thresholds: { min: config?.powerFactorMin || 0.8, max: 1.0 },
-    },
+    frequency: { value: safeData.frequency, unit: "Hz", thresholds: { min: config?.frequencyMin || 49.5, max: config?.frequencyMax || 50.5 } },
+    powerFactor: { value: safeData.powerFactor, unit: "", thresholds: { min: config?.powerFactorMin || 0.8, max: 1.0 } },
     wifiSpeed: { value: status?.networkSpeed || 0, unit: "Mbps", thresholds: { min: 0, max: 1000 } },
     wifiName: { value: status?.ssid || "—", unit: "", thresholds: { min: 0, max: 100 } },
   };
@@ -353,60 +268,42 @@ export default function Dashboard() {
         <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
           <FontAwesomeIcon icon={faBolt} className="text-base sm:text-lg text-yellow-500 mb-0.5" />
           <div className="stat-label text-[9px] leading-tight">Power</div>
-          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-            {safeData.activePower.toFixed(0)} W
-          </div>
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">{safeData.activePower.toFixed(0)} W</div>
         </div>
         <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
           <FontAwesomeIcon icon={faBatteryFull} className="text-base sm:text-lg text-green-500 mb-0.5" />
           <div className="stat-label text-[9px] leading-tight">Energy</div>
           <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-            {costLoading ? (
-              <div className="animate-pulse h-3 w-10 bg-gray-300 dark:bg-gray-600 rounded mx-auto" />
-            ) : (
-              `${consumption != null ? consumption.toFixed(2) : '0.00'} kWh`
-            )}
+            {costLoading ? <div className="animate-pulse h-3 w-10 bg-gray-300 dark:bg-gray-600 rounded mx-auto" /> : `${consumption != null ? consumption.toFixed(2) : '0.00'} kWh`}
           </div>
         </div>
         <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
           <FontAwesomeIcon icon={faMoneyBillWave} className="text-base sm:text-lg text-green-600 mb-0.5" />
           <div className="stat-label text-[9px] leading-tight">Cost</div>
           <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-            {costLoading ? (
-              <div className="animate-pulse h-3 w-10 bg-gray-300 dark:bg-gray-600 rounded mx-auto" />
-            ) : (
-              `₱${cost != null ? cost.toFixed(2) : '0.00'}`
-            )}
+            {costLoading ? <div className="animate-pulse h-3 w-10 bg-gray-300 dark:bg-gray-600 rounded mx-auto" /> : `₱${cost != null ? cost.toFixed(2) : '0.00'}`}
           </div>
         </div>
         <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
           <FontAwesomeIcon icon={faWifi} className="text-base sm:text-lg text-blue-500 mb-0.5" />
           <div className="stat-label text-[9px] leading-tight">WiFi</div>
-          <div className="text-xs font-bold text-gray-900 dark:text-white truncate max-w-full">
-            {status?.ssid || "—"}
-          </div>
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate max-w-full">{status?.ssid || "—"}</div>
         </div>
         <div className="glass-card !p-2 flex flex-col items-center justify-center text-center">
           <FontAwesomeIcon icon={faTachometerAlt} className="text-base sm:text-lg text-purple-500 mb-0.5" />
           <div className="stat-label text-[9px] leading-tight">Speed</div>
-          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-            {status?.networkSpeed || "—"} <span className="text-[9px] font-normal">Mbps</span>
-          </div>
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">{status?.networkSpeed || "—"} <span className="text-[9px] font-normal">Mbps</span></div>
         </div>
       </div>
 
-      {/* Flexible monitoring cards – whole card draggable */}
+      {/* Flexible monitoring cards – drag handle only */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={activeCards} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {activeCards.map((cardKey) => {
               const cardInfo = ALL_CARD_TYPES.find((t) => t.key === cardKey);
               if (!cardInfo) return null;
-              const valObj = cardValues[cardKey] || {
-                value: 0,
-                unit: "",
-                thresholds: { min: 0, max: 100 },
-              };
+              const valObj = cardValues[cardKey] || { value: 0, unit: "", thresholds: { min: 0, max: 100 } };
               return (
                 <SortableCard key={cardKey} id={cardKey} onRemove={handleRemove}>
                   <StatCard
@@ -426,21 +323,14 @@ export default function Dashboard() {
                 className="glass-card flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl hover:border-blue-500 dark:hover:border-blue-400 transition-colors group"
               >
                 <FontAwesomeIcon icon={faPlus} className="text-3xl text-gray-400 group-hover:text-blue-500 mb-2" />
-                <span className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-500">
-                  Add Card
-                </span>
+                <span className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-500">Add Card</span>
               </button>
             )}
           </div>
         </SortableContext>
       </DndContext>
 
-      <AddCardModal
-        open={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
-        activeTypes={activeCards}
-        onAdd={handleAdd}
-      />
+      <AddCardModal open={addModalOpen} onClose={() => setAddModalOpen(false)} activeTypes={activeCards} onAdd={handleAdd} />
     </div>
   );
 }
