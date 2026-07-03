@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
-import { sendPushNotification } from "../lib/sendPush";   // new
+import { db, auth } from "../lib/firebase";          // <-- import auth
+import { sendPushNotification } from "../lib/sendPush";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBell,
@@ -162,6 +162,12 @@ export default function NotificationList({ notifications, deviceId }) {
 
   // ---------- Send push for new unread notifications ----------
   useEffect(() => {
+    const user = auth.currentUser;   // <-- get logged-in user
+    if (!user) {
+      console.warn('No user signed in – cannot send push notifications');
+      return;
+    }
+
     const newUnread = notifications.filter(
       (n) => n.status === "unread" && !pushedIdsRef.current.has(n.id)
     );
