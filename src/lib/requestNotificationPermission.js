@@ -3,7 +3,7 @@ import { getToken } from 'firebase/messaging';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
-const VAPID_KEY = "CrSk9OUFeLVOF5fUIRXuXYFEkoKMx-rhh_uBir5KbZY";
+const VAPID_KEY = "BKv1_eS35Yt8Dw47EAsxI2qgDFs_q4ylxV6xNxtqsQEAPnDXjdiEm_GU4GI4hX7_kRDUB0N47nnrK69QPZj3njA";
 
 export async function requestPermission(userId) {
   const permission = await Notification.requestPermission();
