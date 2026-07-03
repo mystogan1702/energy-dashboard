@@ -1,16 +1,12 @@
-// src/lib/sendPush.js
 export async function sendPushNotification(title, message, url) {
-  try {
-    const response = await fetch('/api/send-notification', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, message, url }),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Push send failed:', error);
-    }
-  } catch (err) {
-    console.error('Push send network error:', err);
+  const userId = 'current-user-id';   // get from your auth context
+  const res = await fetch('/api/send-fcm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, message, url, userId }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    console.error('Push failed:', error);
   }
 }
