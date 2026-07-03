@@ -23,3 +23,6 @@ export async function sendPushNotification(title, message, url) {
     console.error('Push send network error:', err);
   }
 }
+
+// TEMPORARY – allows easy console testing. Remove after confirming everything works.
+window.sendPushNotification = sendPushNotification;
