@@ -2,6 +2,8 @@
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
+console.log('Service account exists:', !!process.env.FIREBASE_SERVICE_ACCOUNT);
+
 // Initialize only once
 if (!admin.apps.length) {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
