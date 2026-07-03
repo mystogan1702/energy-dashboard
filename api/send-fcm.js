@@ -1,13 +1,15 @@
 // api/send-fcm.js
 import admin from 'firebase-admin';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: "cloud-energy-monitoring",
-      clientEmail: "firebase-adminsdk-fbsvc@cloud-energy-monitoring.iam.gserviceaccount.com",
-      // The private key MUST have real newlines, not \n
-      privateKey: `-----BEGIN PRIVATE KEY-----
+export default async function handler(req, res) {
+  try {
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: "cloud-energy-monitoring",
+          clientEmail: "firebase-adminsdk-fbsvc@cloud-energy-monitoring.iam.gserviceaccount.com",
+          // Use the raw string with actual line breaks (template literal)
+          privateKey: `-----BEGIN PRIVATE KEY-----
 MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDA4gB1qp20k4T4
 BqQ3cOnO9eXFJZmXAQ72WmiVrEw8JWOeiq7d1jwhOa+xLNQQaT6B4XUAW0w7lKk7
 eMjXezrrxW9H0Nt+I+/NOl7spqlnxHoZ5p+6OUjFj/Ek+HnyM55xbet8KiBpg4r+
@@ -35,33 +37,13 @@ Fh6x60V+pLM132i7MZB0VmU9ik68UmXhLV67KG0tnQKBgQCefu0gxY1+oyR0a98x
 bkuEzqUJmwJWwgJtvbEjgtcVfJdKKpWbIx3yPyjSOHPo2e3vBELJmKwqAmiulQ/C
 TE+xvAXvdKS6eDNMaZ7qehJ+pg==
 -----END PRIVATE KEY-----`,
-    }),
-  });
-}
-
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const { title, message, url, userId } = req.body;
-  if (!userId) return res.status(400).json({ error: 'Missing userId' });
-
-  try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const userDoc = await getFirestore().collection('users').doc(userId).get();
-    const fcmToken = userDoc.data()?.fcmToken;
-    if (!fcmToken) return res.status(400).json({ error: 'User not subscribed to push' });
-
-    await admin.messaging().send({
-      token: fcmToken,
-      notification: { title: title || 'PesoWatt Alert', body: message || '' },
-      webpush: { fcmOptions: { link: url || '/' } },
-    });
-
-    return res.status(200).json({ success: true });
+        }),
+      });
+    }
+    // If we reach here, initialization succeeded
+    return res.status(200).json({ ok: true, init: 'success' });
   } catch (err) {
-    console.error('FCM send error:', err);
+    // Return the error message as JSON
     return res.status(500).json({ error: err.message });
   }
 }
