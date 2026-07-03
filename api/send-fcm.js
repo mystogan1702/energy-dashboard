@@ -1,13 +1,22 @@
 // api/send-fcm.js
 import admin from 'firebase-admin';
 
-if (!admin.apps.length) {
+function initFirebase() {
+  if (admin.apps.length) return;
+
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'); // ensure newlines
+  // The private key from Vercel already has real newlines; we just need to handle any remaining \n escapes
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-  if (!projectId || !clientEmail || !privateKey) {
-    throw new Error('Missing Firebase env vars (PROJECT_ID, CLIENT_EMAIL, PRIVATE_KEY)');
+  if (!projectId) {
+    throw new Error('Missing env var: FIREBASE_PROJECT_ID');
+  }
+  if (!clientEmail) {
+    throw new Error('Missing env var: FIREBASE_CLIENT_EMAIL');
+  }
+  if (!privateKey) {
+    throw new Error('Missing env var: FIREBASE_PRIVATE_KEY');
   }
 
   admin.initializeApp({
@@ -19,7 +28,19 @@ if (!admin.apps.length) {
   });
 }
 
+// Initialize immediately, but catch any error so we can return it as JSON
+let initError = null;
+try {
+  initFirebase();
+} catch (err) {
+  initError = err.message;
+}
+
 export default async function handler(req, res) {
+  if (initError) {
+    return res.status(500).json({ error: 'Init failed: ' + initError });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
