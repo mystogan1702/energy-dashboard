@@ -1,28 +1,36 @@
 // api/send-fcm.js
 import admin from 'firebase-admin';
 
-export default async function handler(req, res) {
-  // ── Initialization ──────────────────────────────────────
-  try {
-    const base64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
-    if (!base64) {
-      return res.status(500).json({
-        error: 'Missing env var: FIREBASE_SERVICE_ACCOUNT_BASE64',
-      });
-    }
+// Initialize safely with error handling
+function initFirebase() {
+  if (admin.apps.length) return;
 
-    if (!admin.apps.length) {
-      const serviceAccountJson = Buffer.from(base64, 'base64').toString('utf8');
-      const serviceAccount = JSON.parse(serviceAccountJson);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-    }
-  } catch (err) {
-    return res.status(500).json({ error: 'Init error: ' + err.message });
+  const base64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+  if (!base64) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_BASE64 is not set');
   }
 
-  // ── Request handling ──────────────────────────────────────
+  const json = Buffer.from(base64, 'base64').toString('utf8');
+  const serviceAccount = JSON.parse(json);
+
+  // Explicitly map snake_case keys to the camelCase keys the SDK expects
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: serviceAccount.project_id,
+      clientEmail: serviceAccount.client_email,
+      privateKey: serviceAccount.private_key,
+    }),
+  });
+}
+
+// Run initialization at module load, but catch errors to prevent crash
+try {
+  initFirebase();
+} catch (err) {
+  console.error('Firebase init failed:', err.message);
+}
+
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -33,6 +41,11 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Ensure Firebase is initialized
+    if (!admin.apps.length) {
+      initFirebase();
+    }
+
     const { getFirestore } = await import('firebase-admin/firestore');
     const userDoc = await getFirestore().collection('users').doc(userId).get();
     const fcmToken = userDoc.data()?.fcmToken;
@@ -42,8 +55,13 @@ export default async function handler(req, res) {
 
     await admin.messaging().send({
       token: fcmToken,
-      notification: { title: title || 'PesoWatt Alert', body: message || '' },
-      webpush: { fcmOptions: { link: url || '/' } },
+      notification: {
+        title: title || 'PesoWatt Alert',
+        body: message || '',
+      },
+      webpush: {
+        fcmOptions: { link: url || '/' },
+      },
     });
 
     return res.status(200).json({ success: true });
