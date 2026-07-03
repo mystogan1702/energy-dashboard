@@ -2,7 +2,6 @@
 import admin from 'firebase-admin';
 
 if (!admin.apps.length) {
-  // Decode the base64 string back to JSON
   const base64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
   if (!base64) {
     throw new Error('FIREBASE_SERVICE_ACCOUNT_BASE64 is not set');
@@ -21,18 +20,28 @@ export default async function handler(req, res) {
   }
 
   const { title, message, url, userId } = req.body;
-  if (!userId) return res.status(400).json({ error: 'Missing userId' });
+  if (!userId) {
+    return res.status(400).json({ error: 'Missing userId' });
+  }
 
   try {
     const { getFirestore } = await import('firebase-admin/firestore');
     const userDoc = await getFirestore().collection('users').doc(userId).get();
     const fcmToken = userDoc.data()?.fcmToken;
-    if (!fcmToken) return res.status(400).json({ error: 'User not subscribed to push' });
+
+    if (!fcmToken) {
+      return res.status(400).json({ error: 'User not subscribed to push' });
+    }
 
     await admin.messaging().send({
       token: fcmToken,
-      notification: { title: title || 'PesoWatt Alert', body: message || '' },
-      webpush: { fcmOptions: { link: url || '/' } },
+      notification: {
+        title: title || 'PesoWatt Alert',
+        body: message || '',
+      },
+      webpush: {
+        fcmOptions: { link: url || '/' },
+      },
     });
 
     return res.status(200).json({ success: true });
