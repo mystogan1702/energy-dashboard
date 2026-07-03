@@ -5,6 +5,7 @@ import AuthLayout from "./AuthLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { faGoogle } from "@fortawesome/free-brands-svg-icons";
+import { requestPermission } from "../lib/requestNotificationPermission";   // new
 
 export default function LoginPage() {
   const { login, loginWithGoogle } = useAuth();
@@ -21,7 +22,8 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
+      const userCredential = await login(email, password);     // capture user
+      await requestPermission(userCredential.user.uid);        // ask for notifications
       navigate("/");
     } catch (err) {
       setError(err.message);
@@ -33,6 +35,7 @@ export default function LoginPage() {
     setError("");
     try {
       const result = await loginWithGoogle();
+      await requestPermission(result.user.uid);                // ask for notifications
       const providers = result.user.providerData.map((p) => p.providerId);
       if (!providers.includes("password")) {
         navigate("/change-password");
