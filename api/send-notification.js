@@ -8,7 +8,6 @@ export default async function handler(req, res) {
 
   const { title, message, url } = req.body;
 
-  // Use the App API key (os_v2_app_...) and App ID from environment variables
   const client = new OneSignal.Client(
     process.env.ONESIGNAL_APP_ID,
     process.env.ONESIGNAL_REST_API_KEY
@@ -23,7 +22,11 @@ export default async function handler(req, res) {
       chrome_web_icon: 'https://energy-dashboard-mystogan.vercel.app/pwa-192x192.png',
     });
 
-    return res.status(200).json({ success: true, id: response.body.id });
+    // Log the FULL response body in Vercel functions
+    console.log('OneSignal full response:', JSON.stringify(response.body));
+
+    // Return the entire OneSignal response to the frontend
+    return res.status(200).json(response.body);
   } catch (err) {
     console.error('OneSignal SDK error:', err);
     return res.status(500).json({ error: err.message || 'Failed to send notification' });
