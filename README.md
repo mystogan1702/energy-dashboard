@@ -18,26 +18,6 @@ Wi‑Fi provisioning – Captive portal (WiFiManager) with plans for BLE/QR code
 
 Non‑blocking firmware – Cooperative state machine design ensures smooth LED status indicators and responsive cloud communication.
 
-📁 Project Structure
-text
-pesowatt/
-├── firmware/               # ESP32 PlatformIO project
-│   ├── src/
-│   │   ├── main.cpp
-│   │   ├── cloud_sync.cpp  # Firestore document creation, claiming, telemetry upload
-│   │   ├── wifi_sm.cpp     # Wi‑Fi connection state machine + provisioning
-│   │   ├── sensor_sm.cpp   # PZEM‑004T sensor reader
-│   │   ├── LedManager.cpp  # Non‑blocking RGB LED driver
-│   │   └── ...
-│   └── platformio.ini
-├── dashboard/              # React + Vite frontend
-│   ├── src/
-│   │   ├── components/     # Dashboard, DeviceSetup, History, Notifications, etc.
-│   │   ├── hooks/          # Firestore hooks (useLatestReading, useDeviceStatus, etc.)
-│   │   ├── lib/            # Firebase config, AuthContext, DashboardContext
-│   │   └── ...
-│   └── package.json
-└── README.md
 🛠️ Tech Stack
 Layer	Technology
 Firmware	C++ (Arduino framework), PlatformIO
@@ -46,6 +26,7 @@ Sensor	PZEM‑004T v3.0 (Modbus‑RS485)
 Backend	Firebase Firestore, Firebase Auth
 Frontend	React 18, React Router, Tailwind CSS, Recharts, jsPDF, file‑saver
 Deployment	Firebase Hosting (frontend), OTA updates (ESP32)
+
 📡 Hardware
 ESP32‑DevKitC – main controller
 
